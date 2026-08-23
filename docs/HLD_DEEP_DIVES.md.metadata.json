@@ -1,0 +1,5 @@
+{
+  "summary": "Detailed HLD Deep Dives documentation updated to use the Chronos naming schema, updating package paths (io.chronos.*), module directories (chronos-processor), code generator comments, and logging formats.",
+  "updatedAt": "2026-06-10T13:46:46.363537Z",
+  "userFacing": true
+}

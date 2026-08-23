@@ -1,0 +1,5 @@
+{
+  "summary": "System design and HLD documentation updated to reflect the Chronos project naming conventions, modules (chronos-core, chronos-processor, chronos-testing), test harness names (TestChronos), and distribution artifact IDs.",
+  "updatedAt": "2026-06-10T13:46:14.477763Z",
+  "userFacing": true
+}

@@ -1,12 +1,13 @@
 package io.github.sahilmakkar.chronos.scheduler.workEnqueuer
 
-import io.github.sahilmakkar.chronos.data.mapper.toEntity
+import io.github.sahilmakkar.chronos.db.toEntity
 import io.github.sahilmakkar.chronos.db.WorkDatabase
 import io.github.sahilmakkar.chronos.db.WorkDependencyEntity
 import io.github.sahilmakkar.chronos.db.WorkTagEntity
-import io.github.sahilmakkar.chronos.executer.WorkChainCoordinator
+import io.github.sahilmakkar.chronos.db.executor.WorkChainCoordinator
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.TaskChain
+import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
 import io.github.sahilmakkar.chronos.utils.KmpClock
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
@@ -111,7 +112,7 @@ actual class ChronosWorkEnqueuer(
     // --- Helpers ---
 
     private suspend fun cancelAndReplace(existingId: String) {
-        db.workDao().updateWorkState(existingId, "CANCELLED")
+        db.workDao().updateWorkState(id = existingId, state = TaskState.CANCELLED)
     }
 
     private suspend fun insertUnique(request: TaskRequest, uniqueName: String) {

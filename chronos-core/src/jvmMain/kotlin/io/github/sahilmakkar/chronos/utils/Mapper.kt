@@ -17,7 +17,7 @@ fun TaskRequest.toEntity(
 ) = WorkRequestEntity(
     id = id,
     workerClassName = workerClassName,
-    state = TaskState.ENQUEUED.name,
+    state = TaskState.ENQUEUED,
     uniqueWorkName = uniqueName,
     maxRetries = maxRetries,
     runAttemptCount = 0,
@@ -28,9 +28,9 @@ fun TaskRequest.toEntity(
     inputDataJson = taskData.toJson(),
     outputDataJson = "{}",
     progressDataJson = "{}",
-    backoffPolicy = backoffPolicy.name,
+    backoffPolicy = backoffPolicy,
     backoffDelayMs = backoffDelay.inWholeMilliseconds,
-    networkType = constraints.requiredNetworkType.name,
+    networkType = constraints.requiredNetworkType,
     requiresCharging = constraints.requiresCharging,
     requiresBatteryNotLow = constraints.requiresBatteryNotLow,
     requiresStorageNotLow = constraints.requiresStorageNotLow,
@@ -43,7 +43,7 @@ fun TaskRequest.toEntity(
 
 fun WorkRequestEntity.toWorkInfo() = TaskInfo(
     id = id,
-    state = TaskState.valueOf(state),
+    state = state,
     outputData = TaskData.fromJson(outputDataJson),
     progress = TaskData.fromJson(progressDataJson),
     runAttemptCount = runAttemptCount

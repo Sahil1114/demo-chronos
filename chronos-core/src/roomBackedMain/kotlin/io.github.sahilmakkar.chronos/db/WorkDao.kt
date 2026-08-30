@@ -1,6 +1,10 @@
 package io.github.sahilmakkar.chronos.db
 
-import androidx.room3.*
+import androidx.room3.Dao
+import androidx.room3.Insert
+import androidx.room3.OnConflictStrategy
+import androidx.room3.Query
+import io.github.sahilmakkar.chronos.task.TaskState
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -43,7 +47,7 @@ interface WorkDao {
      * Retrieves all tasks matching a specific execution state.
      */
     @Query("SELECT * FROM work_requests WHERE state = :state")
-    suspend fun getWorkRequestsByState(state: String): List<WorkRequestEntity>
+    suspend fun getWorkRequestsByState(state: TaskState): List<WorkRequestEntity>
 
     /**
      * Retrieves all tasks currently stored in the database.
@@ -55,13 +59,13 @@ interface WorkDao {
      * Updates the execution state of a specific task.
      */
     @Query("UPDATE work_requests SET state = :state WHERE id = :id")
-    suspend fun updateWorkState(id: String, state: String)
+    suspend fun updateWorkState(id: String, state: TaskState)
 
     /**
      * Updates both the state and the final output JSON payload for a task.
      */
     @Query("UPDATE work_requests SET state = :state, outputDataJson = :outputJson WHERE id = :id")
-    suspend fun updateWorkStateAndOutput(id: String, state: String, outputJson: String)
+    suspend fun updateWorkStateAndOutput(id: String, state: TaskState, outputJson: String)
 
     /**
      * Updates the intermediate progress JSON payload for a running task.

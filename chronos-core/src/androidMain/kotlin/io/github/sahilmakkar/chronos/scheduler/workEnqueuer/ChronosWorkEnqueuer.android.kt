@@ -1,23 +1,37 @@
 package io.github.sahilmakkar.chronos.scheduler.workEnqueuer
 
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.ExistingWorkPolicy
-import androidx.work.WorkManager
+import io.github.sahilmakkar.chronos.db.WorkDatabase
+import io.github.sahilmakkar.chronos.db.WorkDependencyEntity
+import io.github.sahilmakkar.chronos.db.WorkTagEntity
+import io.github.sahilmakkar.chronos.db.executor.WorkChainCoordinator
+import io.github.sahilmakkar.chronos.db.toEntity
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
+import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
 import io.github.sahilmakkar.chronos.task.TaskChain
-import io.github.sahilmakkar.chronos.mapper.WorkRequestMapper
+import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
-
+import io.github.sahilmakkar.chronos.utils.KmpClock
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 actual class ChronosWorkEnqueuer(
-    private val workManager: WorkManager
+    private val db: WorkDatabase,
+    private val clock: KmpClock,
+    private val coroutineScope: CoroutineScope,
+    private val coordinator: WorkChainCoordinator
 ) : WorkEnqueuer {
 
     actual override fun enqueue(request: TaskRequest) {
-        with(WorkRequestMapper) {
-            workManager.enqueue(toWorkRequest(request))
+        coroutineScope.launch {
+            db.workDao().insertWorkRequest(
+                request.toEntity(
+                    scheduledAt = clock.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds
+                )
+            )
+            db.workDao().insertTags(request.tags.map { WorkTagEntity(request.id, it) })
+            coordinator.runPendingTasks()
         }
     }
 
@@ -26,17 +40,24 @@ actual class ChronosWorkEnqueuer(
         policy: UniqueTaskPolicy,
         request: OneTimeTaskRequest
     ) {
-        val nativePolicy = when (policy) {
-            UniqueTaskPolicy.KEEP -> ExistingWorkPolicy.KEEP
-            UniqueTaskPolicy.REPLACE -> ExistingWorkPolicy.REPLACE
-            UniqueTaskPolicy.APPEND -> ExistingWorkPolicy.APPEND
-        }
-        with(WorkRequestMapper) {
-            workManager.enqueueUniqueWork(
-                uniqueWorkName = name,
-                existingWorkPolicy = nativePolicy,
-                request = toOneTimeWorkRequest(request)
-            )
+        coroutineScope.launch {
+            val existing = db.workDao().getWorkRequestByName(name)
+            if (existing != null) {
+                when (policy) {
+                    UniqueTaskPolicy.KEEP -> return@launch
+                    UniqueTaskPolicy.REPLACE -> cancelAndReplace(existing.id)
+                    UniqueTaskPolicy.APPEND -> {
+                        insertWithDependency(
+                            request = request,
+                            uniqueName = name,
+                            parentId = existing.id
+                        )
+                        return@launch
+                    }
+                }
+            }
+            insertUnique(request, name)
+            coordinator.runPendingTasks()
         }
     }
 
@@ -45,34 +66,87 @@ actual class ChronosWorkEnqueuer(
         policy: UniqueTaskPolicy,
         request: PeriodicTaskRequest
     ) {
-        val nativePolicy = when (policy) {
-            UniqueTaskPolicy.KEEP -> ExistingPeriodicWorkPolicy.KEEP
-            UniqueTaskPolicy.REPLACE -> ExistingPeriodicWorkPolicy.REPLACE
-            UniqueTaskPolicy.APPEND -> throw IllegalArgumentException(
-                "APPEND policy is not supported for unique periodic work on Android."
-            )
-        }
-        with(WorkRequestMapper) {
-            workManager.enqueueUniquePeriodicWork(
-                uniqueWorkName = name,
-                existingPeriodicWorkPolicy = nativePolicy,
-                request = toPeriodicWorkRequest(request)
-            )
+        coroutineScope.launch {
+            val existing = db.workDao().getWorkRequestByName(name)
+            if (existing != null) {
+                when (policy) {
+                    UniqueTaskPolicy.KEEP -> return@launch
+                    UniqueTaskPolicy.REPLACE -> cancelAndReplace(existing.id)
+                    UniqueTaskPolicy.APPEND -> throw IllegalArgumentException(
+                        "APPEND policy is not supported for unique periodic work."
+                    )
+                }
+            }
+            insertUnique(request, name)
+            coordinator.runPendingTasks()
         }
     }
 
     actual override fun enqueue(chain: TaskChain) {
         if (chain.requests.isEmpty()) return
-        with(WorkRequestMapper) {
-            var continuation = workManager.beginWith(
-                toOneTimeWorkRequest(chain.requests.first() as OneTimeTaskRequest)
-            )
-            for (i in 1 until chain.requests.size) {
-                continuation = continuation.then(
-                    toOneTimeWorkRequest(chain.requests[i] as OneTimeTaskRequest)
+        coroutineScope.launch {
+            val nowMs = clock.now().toEpochMilliseconds()
+            val dependencies = mutableListOf<WorkDependencyEntity>()
+            chain.requests.forEachIndexed { i, req ->
+                db.workDao().insertWorkRequest(
+                    req.toEntity(
+                        scheduledAt = nowMs + req.initialDelay.inWholeMilliseconds,
+                        chainId = chain.requests.first().id,
+                        chainOrder = i
+                    )
                 )
+                db.workDao().insertTags(req.tags.map { WorkTagEntity(req.id, it) })
+                if (i > 0) {
+                    dependencies.add(
+                        WorkDependencyEntity(
+                            parentWorkId = chain.requests[i - 1].id,
+                            childWorkId = req.id,
+                            chainFailurePolicy = chain.failurePolicies[i - 1]
+                        )
+                    )
+                }
             }
-            continuation.enqueue()
+            db.workDao().insertDependencies(dependencies)
+            coordinator.runPendingTasks()
         }
+    }
+
+    // --- Helpers ---
+
+    private suspend fun cancelAndReplace(existingId: String) {
+        db.workDao().updateWorkState(existingId, TaskState.CANCELLED)
+    }
+
+    private suspend fun insertUnique(request: TaskRequest, uniqueName: String) {
+        db.workDao().insertWorkRequest(
+            request.toEntity(
+                scheduledAt = clock.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
+                uniqueName = uniqueName
+            )
+        )
+        db.workDao().insertTags(request.tags.map { WorkTagEntity(request.id, it) })
+    }
+
+    private suspend fun insertWithDependency(
+        request: OneTimeTaskRequest,
+        uniqueName: String,
+        parentId: String
+    ) {
+        db.workDao().insertWorkRequest(
+            request.toEntity(
+                scheduledAt = clock.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
+                uniqueName = uniqueName
+            )
+        )
+        db.workDao().insertTags(request.tags.map { WorkTagEntity(request.id, it) })
+        db.workDao().insertDependencies(
+            listOf(
+                WorkDependencyEntity(
+                    parentWorkId = parentId,
+                    childWorkId = request.id,
+                    chainFailurePolicy = DependentTaskPolicy.STOP_ON_FAILURE
+                )
+            )
+        )
     }
 }

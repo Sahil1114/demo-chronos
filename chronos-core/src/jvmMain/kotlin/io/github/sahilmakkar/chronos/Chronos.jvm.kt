@@ -1,24 +1,26 @@
+@file:Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
+
 package io.github.sahilmakkar.chronos
 
-import io.github.sahilmakkar.chronos.task.model.TaskInfo
-import io.github.sahilmakkar.chronos.data.mapper.toWorkInfo
 import io.github.sahilmakkar.chronos.db.WorkDatabase
 import io.github.sahilmakkar.chronos.db.createRoomDatabase
+import io.github.sahilmakkar.chronos.db.executor.WorkChainCoordinator
+import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
+import io.github.sahilmakkar.chronos.db.toWorkInfo
 import io.github.sahilmakkar.chronos.executer.WorkConstraintVerifier
-import io.github.sahilmakkar.chronos.executer.WorkChainCoordinator
-import io.github.sahilmakkar.chronos.executor.WorkTaskExecutor
 import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
-import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
-import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
 import io.github.sahilmakkar.chronos.scheduler.WorkObserver
 import io.github.sahilmakkar.chronos.scheduler.canceller.WorkCanceller
 import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.WorkEnqueuer
-import io.github.sahilmakkar.chronos.utils.KmpClock
+import io.github.sahilmakkar.chronos.task.TaskChain
+import io.github.sahilmakkar.chronos.task.model.TaskInfo
+import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
+import io.github.sahilmakkar.chronos.utils.KmpClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -55,16 +57,16 @@ actual class Chronos actual constructor(
     }
 
     private val taskExecutor by lazy {
-        WorkTaskExecutor(db = db, registry = registry, clock = clock)
+        WorkTaskExecutor(db = db, registry = registry)
     }
 
     private val coordinator by lazy {
         WorkChainCoordinator(
             db = db,
             clock = clock,
-            constraintVerifier = constraintVerifier,
+            //constraintVerifier = constraintVerifier,
             taskExecutor = taskExecutor
-        ).also { taskExecutor.coordinator = it } // wire back-reference here
+        )
     }
 
     private val enqueuer by lazy {

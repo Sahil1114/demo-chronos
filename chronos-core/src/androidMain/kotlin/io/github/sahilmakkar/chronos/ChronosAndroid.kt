@@ -2,11 +2,11 @@ package io.github.sahilmakkar.chronos
 
 import android.content.Context
 import androidx.work.WorkManager
-import io.github.sahilmakkar.chronos.task.model.TaskInfo
+import io.github.sahilmakkar.chronos.db.WorkDatabase
+import io.github.sahilmakkar.chronos.db.createRoomDatabase
+import io.github.sahilmakkar.chronos.db.executor.WorkChainCoordinator
+import io.github.sahilmakkar.chronos.db.toWorkInfo
 import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
-import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
-import io.github.sahilmakkar.chronos.task.TaskChain
-import io.github.sahilmakkar.chronos.mapper.WorkInfoMapper
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
 import io.github.sahilmakkar.chronos.scheduler.WorkObserver
@@ -14,14 +14,23 @@ import io.github.sahilmakkar.chronos.scheduler.canceller.ChronosWorkCanceller
 import io.github.sahilmakkar.chronos.scheduler.canceller.WorkCanceller
 import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.ChronosWorkEnqueuer
 import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.WorkEnqueuer
-import io.github.sahilmakkar.chronos.utils.KmpClock
-import io.github.sahilmakkar.chronos.utils.SystemClock
+import io.github.sahilmakkar.chronos.task.TaskChain
+import io.github.sahilmakkar.chronos.task.model.TaskInfo
+import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
+import io.github.sahilmakkar.chronos.utils.KmpClock
+import io.github.sahilmakkar.chronos.utils.SystemClock
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.UUID
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 actual class Chronos actual constructor(
     actual val registry: KmpWorkerRegistry,
@@ -42,32 +51,58 @@ actual class Chronos actual constructor(
     }
 
     private val workManager: WorkManager by lazy {
-        val ctx = androidContext ?: throw IllegalStateException(
-            "Android Context not initialized. Use the Context constructor."
+        WorkManager.getInstance(
+            androidContext ?: error("Android Context not initialized. Use the Context constructor.")
         )
-        WorkManager.getInstance(ctx)
     }
 
     actual val networkChecker: NetworkChecker by lazy {
-        val ctx = androidContext ?: throw IllegalStateException(
-            "Android Context not initialized. Use the Context constructor."
+        AndroidNetworkChecker(
+            androidContext ?: error("Android Context not initialized. Use the Context constructor.")
         )
-        AndroidNetworkChecker(ctx)
     }
 
-    private val enqueuer: ChronosWorkEnqueuer by lazy {
-       ChronosWorkEnqueuer(workManager)
+    // Room DB — source of truth for all task state on Android
+    val db: WorkDatabase = createRoomDatabase()
+
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    private val taskExecutor by lazy {
+        AndroidTaskExecutor(workManager, db)
     }
 
-    private val canceller: ChronosWorkCanceller by lazy {
-       ChronosWorkCanceller(workManager)
+    private val coordinator by lazy {
+        WorkChainCoordinator(db, clock, taskExecutor)
+    }
+
+    private val enqueuer by lazy {
+        ChronosWorkEnqueuer(db, clock, coroutineScope, coordinator)
+    }
+
+    private val canceller by lazy {
+        ChronosWorkCanceller(
+            workManager = workManager,
+            db = db,
+            coroutineScope = coroutineScope
+        )
     }
 
     actual companion object {}
 
-    // --- WorkEnqueuer — delegated to ChronosWorkEnqueuer ---
+    init {
+        Chronos.initialize(this)
+        coroutineScope.launch {
+            coordinator.sweepOrphans()
+            coordinator.sweepChainRecovery()
+            coordinator.runPendingTasks()
+        }
+        startDaemonLoop()
+    }
 
-    actual override fun enqueue(request: TaskRequest) = enqueuer.enqueue(request)
+    // --- WorkEnqueuer ---
+
+    actual override fun enqueue(request: TaskRequest) =
+        enqueuer.enqueue(request)
 
     actual override fun enqueueUniqueWork(
         name: String,
@@ -81,30 +116,57 @@ actual class Chronos actual constructor(
         request: PeriodicTaskRequest
     ) = enqueuer.enqueueUniquePeriodicWork(name, policy, request)
 
-    actual override fun enqueue(chain: TaskChain) = enqueuer.enqueue(chain)
+    actual override fun enqueue(chain: TaskChain) =
+        enqueuer.enqueue(chain)
 
-    // --- WorkCanceller — delegated to ChronosWorkCanceller ---
+    // --- WorkCanceller ---
 
-    actual override fun cancelWorkById(id: String) = canceller.cancelWorkById(id)
-    actual override fun cancelWorkByTag(tag: String) = canceller.cancelWorkByTag(tag)
-    actual override fun cancelAllWork() = canceller.cancelAllWork()
+    actual override fun cancelWorkById(id: String) =
+        canceller.cancelWorkById(id)
+
+    actual override fun cancelWorkByTag(tag: String) =
+        canceller.cancelWorkByTag(tag)
+
+    actual override fun cancelAllWork() =
+        canceller.cancelAllWork()
 
     // --- WorkObserver ---
+    // Reads from Room -- Room is source of truth, not WorkManager
 
     actual override fun getWorkInfoFlow(id: String): Flow<TaskInfo?> =
-        workManager.getWorkInfoByIdFlow(UUID.fromString(id)).map {
-            with(WorkInfoMapper) { it?.toWorkInfo() }
-        }
+        db.workDao().observeWorkRequest(id).map { it?.toWorkInfo() }
 
     actual override fun getWorkInfosByTagFlow(tag: String): Flow<List<TaskInfo>> =
-        workManager.getWorkInfosByTagFlow(tag).map { list ->
-            with(WorkInfoMapper) { list.map { it.toWorkInfo() } }
+        db.workDao().observeWorkRequestsByTag(tag).map { list ->
+            list.map { it.toWorkInfo() }
         }
 
     // --- PlatformScheduler ---
 
-    actual override suspend fun runPendingTasksNow() {}
+    actual override suspend fun runPendingTasksNow() =
+        coordinator.runPendingTasks()
 
-    actual override fun close() {}
+    // --- AutoCloseable ---
+
+    actual override fun close() {
+        coroutineScope.cancel()
+        db.close()
+        // WorkManager manages its own lifecycle -- no close needed
+    }
+
+    // --- Daemon ---
+
+    private fun startDaemonLoop() {
+        coroutineScope.launch {
+            while (isActive) {
+                try {
+                    coordinator.runPendingTasks()
+                } catch (e: Exception) {
+                }
+                delay(1000)
+            }
+        }
+    }
 }
+
 var androidContext: Context? = null

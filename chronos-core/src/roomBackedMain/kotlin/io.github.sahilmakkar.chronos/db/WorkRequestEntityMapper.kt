@@ -1,6 +1,6 @@
-package io.github.sahilmakkar.chronos.data.mapper
+package io.github.sahilmakkar.chronos.db
 
-import io.github.sahilmakkar.chronos.db.WorkRequestEntity
+import io.github.sahilmakkar.chronos.data.mapper.toJson
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 import io.github.sahilmakkar.chronos.task.TaskState
 
@@ -12,7 +12,7 @@ fun TaskRequest.toEntity(
 ) = WorkRequestEntity(
     id = id,
     workerClassName = workerClassName,
-    state = TaskState.ENQUEUED.name,
+    state = TaskState.ENQUEUED,
     uniqueWorkName = uniqueName,
     maxRetries = maxRetries,
     runAttemptCount = 0,

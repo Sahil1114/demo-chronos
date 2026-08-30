@@ -6,10 +6,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 
-/**
- * Android implementation of [io.github.sahilmakkar.chronos.network.NetworkChecker] that uses Android's [ConnectivityManager]
- * to determine cellular/Wi-Fi connectivity and metered vs. unmetered state.
- */
 @SuppressLint("MissingPermission")
 class AndroidNetworkChecker(private val context: Context) : NetworkChecker {
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

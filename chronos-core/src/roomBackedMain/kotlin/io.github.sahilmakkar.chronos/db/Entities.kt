@@ -4,6 +4,14 @@ import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
+import androidx.room3.TypeConverters
+import io.github.sahilmakkar.chronos.db.typeConvertor.BackoffPolicyConvertor
+import io.github.sahilmakkar.chronos.db.typeConvertor.DependentTaskPolicyConvertor
+import io.github.sahilmakkar.chronos.db.typeConvertor.NetworkTypeConvertor
+import io.github.sahilmakkar.chronos.db.typeConvertor.TaskStateConvertor
+import io.github.sahilmakkar.chronos.network.NetworkType
+import io.github.sahilmakkar.chronos.task.TaskState
+import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
 
 /**
@@ -12,12 +20,17 @@ import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
  */
 @Entity(
     tableName = "work_requests",
-    indices = [Index(value = ["uniqueWorkName"])] // removed unique = true to support APPEND chains
+    indices = [Index(value = ["uniqueWorkName"])]
+)
+@TypeConverters(
+    TaskStateConvertor::class,
+    BackoffPolicyConvertor::class,
+    NetworkTypeConvertor::class
 )
 data class WorkRequestEntity(
     @PrimaryKey val id: String,
     val workerClassName: String,
-    val state: String,
+    val state: TaskState,
     val uniqueWorkName: String?,
     val maxRetries: Int,
     val runAttemptCount: Int,
@@ -28,11 +41,11 @@ data class WorkRequestEntity(
     val inputDataJson: String,
     val outputDataJson: String,
     val progressDataJson: String,
-    val backoffPolicy: String,
+    val backoffPolicy: BackoffPolicy,
     val backoffDelayMs: Long,
-    
+
     // Constraints
-    val networkType: String,
+    val networkType: NetworkType,
     val requiresCharging: Boolean,
     val requiresBatteryNotLow: Boolean,
     val requiresStorageNotLow: Boolean,
@@ -40,7 +53,7 @@ data class WorkRequestEntity(
     val windowStartHour: Int?,
     val windowEndHour: Int?,
     val windowTimeZone: String?,
-    
+
     // Periodic
     val repeatIntervalMs: Long?
 )
@@ -98,6 +111,7 @@ data class WorkTagEntity(
     ],
     indices = [Index(value = ["parentWorkId"]), Index(value = ["childWorkId"])]
 )
+@TypeConverters(DependentTaskPolicyConvertor::class)
 data class WorkDependencyEntity(
     val parentWorkId: String,
     val childWorkId: String,

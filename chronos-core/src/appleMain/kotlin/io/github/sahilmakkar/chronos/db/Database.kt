@@ -10,7 +10,7 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
 /**
- * Apple iOS/macOS actual implementation of [createRoomDatabase] that instantiates the Room database
+ * Apple iOS/macOS actual implementation of [io.github.sahilmakkar.chronos.db.createRoomDatabase] that instantiates the Room database
  * under the standard iOS/macOS Documents directory.
  */
 actual fun createRoomDatabase(): WorkDatabase {

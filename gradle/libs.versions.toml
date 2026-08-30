@@ -1,85 +1,88 @@
 [versions]
 # ── Build chain ─────────────────────────────────────────────
-kotlin                  = "2.4.0"
-agp                     = "8.10.0"
-ksp                     = "2.3.9"           # KSP2 — standalone versioning since Kotlin 2.3.0+
+kotlin = "2.4.0"
+agp = "8.10.0"
+ksp = "2.3.9"           # KSP2 — standalone versioning since Kotlin 2.3.0+
 
 # ── Core runtime ─────────────────────────────────────────────
-coroutines              = "1.10.2"
-kotlinxDatetime         = "0.7.1"
-kotlinxSerialization    = "1.11.0"
+coroutines = "1.10.2"
+kotlinxDatetime = "0.7.1"
+kotlinxSerialization = "1.11.0"
 
 
 # ── Room 3.0 KMP ─────────────────────────────────────────────
-room                    = "3.0.0-alpha05"
-sqlite                  = "2.5.1"
+room = "3.0.0-alpha05"
+sqlite = "2.5.1"
 
 # ── Android ──────────────────────────────────────────────────
-workmanager             = "2.11.2"
-androidxLifecycle       = "2.9.0"
-androidxNavigation      = "2.9.0"
+workmanager = "2.11.2"
+androidxLifecycle = "2.9.0"
+androidxNavigation = "2.9.0"
+androidxStartup = "1.2.0"
 
 # ── KSP Processor ────────────────────────────────────────────
-kotlinpoet              = "2.1.0"
+kotlinpoet = "2.1.0"
 
 # ── Sample App ───────────────────────────────────────────────
-composeMultiplatform    = "1.11.1"
+composeMultiplatform = "1.11.1"
 
 # ── Testing ──────────────────────────────────────────────────
-coroutinesTest          = "1.10.2"
+coroutinesTest = "1.10.2"
 
 # ── Publishing ───────────────────────────────────────────────
-mavenPublish            = "0.30.0"
+mavenPublish = "0.30.0"
 
 # ── Compile targets ──────────────────────────────────────────
-compileSdk              = "37"
-minSdk                  = "23"
-targetSdk               = "35"
+compileSdk = "37"
+minSdk = "23"
+targetSdk = "35"
 
 # ... (rest of your versions)
 
 [libraries]
 # ── Core runtime ─────────────────────────────────────────────
-kotlinx-coroutines-core     = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core",     version.ref = "coroutines" }
-kotlinx-coroutines-android  = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android",  version.ref = "coroutines" }
-kotlinx-coroutines-test     = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test",     version.ref = "coroutinesTest" }
-kotlinx-datetime            = { module = "org.jetbrains.kotlinx:kotlinx-datetime",            version.ref = "kotlinxDatetime" }
-kotlinx-serialization-json  = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json",    version.ref = "kotlinxSerialization" } # <-- Add this
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesTest" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" } # <-- Add this
 
 # ── Room 3.0 ─────────────────────────────────────────────────
-room-runtime                = { module = "androidx.room3:room3-runtime",                       version.ref = "room" }
-room-compiler               = { module = "androidx.room3:room3-compiler",                      version.ref = "room" }
-sqlite-bundled              = { module = "androidx.sqlite:sqlite-bundled",                     version.ref = "sqlite" }
+room-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room" }
+room-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room" }
+sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 
 # ── Android WorkManager ───────────────────────────────────────
-workmanager-ktx             = { module = "androidx.work:work-runtime-ktx",                    version.ref = "workmanager" }
+workmanager-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workmanager" }
+androidx-startup-runtime = { module = "androidx.startup:startup-runtime", version.ref = "androidxStartup" }
+
 
 # ── KSP Processor module ──────────────────────────────────────
-ksp-api                     = { module = "com.google.devtools.ksp:symbol-processing-api",     version.ref = "ksp" }
-kotlinpoet-ksp              = { module = "com.squareup:kotlinpoet-ksp",                       version.ref = "kotlinpoet" }
+ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
+kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoet" }
 
 # ── Sample app ────────────────────────────────────────────────
-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose",    version.ref = "androidxLifecycle" }
-navigation-compose          = { module = "androidx.navigation:navigation-compose",             version.ref = "androidxNavigation" }
+lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
+navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "androidxNavigation" }
 
 [plugins]
 # ── Kotlin ───────────────────────────────────────────────────
-kotlinMultiplatform         = { id = "org.jetbrains.kotlin.multiplatform",     version.ref = "kotlin" }
-kotlinAndroid               = { id = "org.jetbrains.kotlin.android",           version.ref = "kotlin" }
-kotlinPluginCompose         = { id = "org.jetbrains.kotlin.plugin.compose",    version.ref = "kotlin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlinPluginCompose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 # ── Android ──────────────────────────────────────────────────
-androidLibrary              = { id = "com.android.library",                    version.ref = "agp" }
-androidApplication          = { id = "com.android.application",                version.ref = "agp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+androidApplication = { id = "com.android.application", version.ref = "agp" }
 
 # ── KSP ──────────────────────────────────────────────────────
-ksp                         = { id = "com.google.devtools.ksp",                version.ref = "ksp" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
 # ── Room ─────────────────────────────────────────────────────
-room                        = { id = "androidx.room3",                         version.ref = "room" }
+room = { id = "androidx.room3", version.ref = "room" }
 
 # ── Compose Multiplatform ────────────────────────────────────
-jetbrainsCompose            = { id = "org.jetbrains.compose",                  version.ref = "composeMultiplatform" }
+jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 
 # ── Publishing ───────────────────────────────────────────────
-mavenPublish                = { id = "com.vanniktech.maven.publish",           version.ref = "mavenPublish" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }

@@ -1,11 +1,10 @@
 package io.github.sahilmakkar.chronos.scheduler.workEnqueuer
 
-import io.github.sahilmakkar.chronos.data.mapper.toEntity
+import io.github.sahilmakkar.chronos.db.toEntity
 import io.github.sahilmakkar.chronos.db.WorkDatabase
 import io.github.sahilmakkar.chronos.db.WorkDependencyEntity
 import io.github.sahilmakkar.chronos.db.WorkTagEntity
 import io.github.sahilmakkar.chronos.executor.IosBackgroundTaskScheduler
-import io.github.sahilmakkar.chronos.executor.WorkChainCoordinator
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy

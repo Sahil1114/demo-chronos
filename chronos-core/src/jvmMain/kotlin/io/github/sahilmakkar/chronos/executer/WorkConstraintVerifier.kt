@@ -26,9 +26,8 @@ import java.io.File
     }
 
     private fun verifyNetwork(entity: WorkRequestEntity): Boolean {
-        val netType = NetworkType.valueOf(entity.networkType)
-        if (netType == NetworkType.CONNECTED && !networkChecker.isConnected()) return false
-        if (netType == NetworkType.UNMETERED && !networkChecker.isUnmetered()) return false
+        if (entity.networkType == NetworkType.CONNECTED && !networkChecker.isConnected()) return false
+        if (entity.networkType == NetworkType.UNMETERED && !networkChecker.isUnmetered()) return false
         return true
     }
 

@@ -14,7 +14,7 @@ private fun NetworkType.toNativeNetworkType(): androidx.work.NetworkType = when 
     NetworkType.NOT_REQUIRED -> androidx.work.NetworkType.NOT_REQUIRED
     NetworkType.CONNECTED -> androidx.work.NetworkType.CONNECTED
     NetworkType.UNMETERED -> androidx.work.NetworkType.UNMETERED
-}
+  }
 internal object WorkConstraintsMapper {
     fun toConstraints(constraints: EnvironmentConstraints): Constraints =
         Constraints.Builder()

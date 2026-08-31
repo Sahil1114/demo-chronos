@@ -90,7 +90,7 @@ class AndroidTaskExecutor(
  */
 private fun WorkRequestEntity.toWorkManagerConstraints(): androidx.work.Constraints =
     androidx.work.Constraints.Builder()
-        .setRequiredNetworkType(NetworkType.valueOf(networkType).toAndroidNetworkType())
+        .setRequiredNetworkType(networkType.toAndroidNetworkType())
         .setRequiresCharging(requiresCharging)
         .setRequiresBatteryNotLow(requiresBatteryNotLow)
         .setRequiresStorageNotLow(requiresStorageNotLow)
@@ -101,6 +101,4 @@ fun NetworkType.toAndroidNetworkType(): androidx.work.NetworkType = when (this) 
     NetworkType.NOT_REQUIRED -> androidx.work.NetworkType.NOT_REQUIRED
     NetworkType.CONNECTED -> androidx.work.NetworkType.CONNECTED
     NetworkType.UNMETERED -> androidx.work.NetworkType.UNMETERED
-    NetworkType.NOT_ROAMING -> androidx.work.NetworkType.NOT_ROAMING
-    NetworkType.METERED -> androidx.work.NetworkType.METERED
 }

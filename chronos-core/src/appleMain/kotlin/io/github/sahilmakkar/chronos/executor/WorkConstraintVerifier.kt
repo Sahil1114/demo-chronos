@@ -1,4 +1,5 @@
 @file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package io.github.sahilmakkar.chronos.executor
 
 import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
@@ -31,9 +32,8 @@ class WorkConstraintVerifier(
     }
 
     private fun verifyNetwork(entity: WorkRequestEntity): Boolean {
-        val netType = NetworkType.valueOf(entity.networkType)
-        if (netType == NetworkType.CONNECTED && !networkChecker.isConnected()) return false
-        if (netType == NetworkType.UNMETERED && !networkChecker.isUnmetered()) return false
+        if (entity.networkType == NetworkType.CONNECTED && !networkChecker.isConnected()) return false
+        if (entity.networkType == NetworkType.UNMETERED && !networkChecker.isUnmetered()) return false
         return true
     }
 

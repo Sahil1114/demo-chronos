@@ -2,6 +2,7 @@ package io.github.sahilmakkar.chronos.executer
 
 import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
 import io.github.sahilmakkar.chronos.db.WorkRequestEntity
+import io.github.sahilmakkar.chronos.db.executor.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.network.NetworkType
 import io.github.sahilmakkar.chronos.utils.KmpClock
@@ -16,9 +17,9 @@ import java.io.File
  class WorkConstraintVerifier(
     private val networkChecker: NetworkChecker,
     private val clock: KmpClock
-) {
+) : WorkConstraintVerifier {
 
-    fun isSatisfied(entity: WorkRequestEntity): Boolean {
+    override fun isSatisfied(entity: WorkRequestEntity): Boolean {
         if (!verifyNetwork(entity)) return false
         if (entity.requiresStorageNotLow && !isStorageNotLow()) return false
         if (!verifyTimeWindow(entity)) return false

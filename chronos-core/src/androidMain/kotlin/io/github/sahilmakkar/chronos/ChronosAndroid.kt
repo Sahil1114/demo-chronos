@@ -6,6 +6,8 @@ import io.github.sahilmakkar.chronos.db.WorkDatabase
 import io.github.sahilmakkar.chronos.db.createRoomDatabase
 import io.github.sahilmakkar.chronos.db.executor.WorkChainCoordinator
 import io.github.sahilmakkar.chronos.db.toWorkInfo
+import io.github.sahilmakkar.chronos.executor.AndroidTaskExecutor
+import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
@@ -68,11 +70,16 @@ actual class Chronos actual constructor(
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val taskExecutor by lazy {
-        AndroidTaskExecutor(workManager, db)
+        AndroidTaskExecutor(workManager = workManager, db = db)
     }
 
     private val coordinator by lazy {
-        WorkChainCoordinator(db, clock, taskExecutor)
+        WorkChainCoordinator(
+            db = db,
+            clock = clock,
+            taskExecutor = taskExecutor,
+            constraintProvider = WorkConstraintVerifier()
+        )
     }
 
     private val enqueuer by lazy {

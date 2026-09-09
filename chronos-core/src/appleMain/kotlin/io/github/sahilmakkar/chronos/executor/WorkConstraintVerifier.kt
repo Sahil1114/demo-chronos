@@ -4,6 +4,7 @@ package io.github.sahilmakkar.chronos.executor
 
 import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
 import io.github.sahilmakkar.chronos.db.WorkRequestEntity
+import io.github.sahilmakkar.chronos.db.executor.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.network.NetworkType
 import io.github.sahilmakkar.chronos.utils.KmpClock
@@ -20,9 +21,9 @@ import platform.UIKit.UIDeviceBatteryState
 class WorkConstraintVerifier(
     private val networkChecker: NetworkChecker,
     private val clock: KmpClock
-) {
+) : WorkConstraintVerifier {
 
-    fun isSatisfied(entity: WorkRequestEntity): Boolean {
+    override fun isSatisfied(entity: WorkRequestEntity): Boolean {
         if (!verifyNetwork(entity)) return false
         if (entity.requiresCharging && !isCharging()) return false
         if (entity.requiresBatteryNotLow && !isBatteryNotLow()) return false

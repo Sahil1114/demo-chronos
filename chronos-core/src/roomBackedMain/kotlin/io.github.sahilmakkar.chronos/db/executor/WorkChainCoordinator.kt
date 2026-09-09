@@ -23,7 +23,8 @@ import io.github.sahilmakkar.chronos.utils.KmpClock
 class WorkChainCoordinator(
     private val db: WorkDatabase,
     private val clock: KmpClock,
-    private val taskExecutor: TaskExecutor
+    private val taskExecutor: TaskExecutor,
+    private val constraintProvider: WorkConstraintVerifier
 ) {
 
     suspend fun sweepOrphans() {
@@ -64,7 +65,7 @@ class WorkChainCoordinator(
         for (entity in pending) {
             if (entity.scheduledAt > nowMs) continue
             if (!resolveDependencies(entity = entity)) continue
-            // if (!constraintVerifier.isSatisfied(entity)) continue
+             if (!constraintProvider.isSatisfied(entity)) continue
 
             val inputData = TaskData.fromJson(entity.inputDataJson)
             val result = taskExecutor.execute(entity, inputData)

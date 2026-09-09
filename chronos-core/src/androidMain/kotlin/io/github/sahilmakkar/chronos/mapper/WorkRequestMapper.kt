@@ -7,6 +7,7 @@ import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkRequest
 import io.github.sahilmakkar.chronos.AndroidDelegatingWorker
+import io.github.sahilmakkar.chronos.mapper.WorkConstraintsMapper.toConstraints
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
@@ -41,7 +42,7 @@ internal object WorkRequestMapper {
         val workRequest: B = (this as B)
             .setId(UUID.fromString(request.id))
             .setInputData(WorkDataMapper.toData(request.taskData, request.workerClassName))
-            .setConstraints(WorkConstraintsMapper.toConstraints(request.constraints))
+            .setConstraints(request.constraints.toConstraints())
             .setInitialDelay(request.initialDelay.inWholeMilliseconds, TimeUnit.MILLISECONDS)
             .setBackoffCriteria(
                 backoffPolicy = request.backoffPolicy.toNative(),

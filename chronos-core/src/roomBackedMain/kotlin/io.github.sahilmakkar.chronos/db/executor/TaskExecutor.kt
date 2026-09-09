@@ -13,3 +13,7 @@ import io.github.sahilmakkar.chronos.task.model.TaskData
 interface TaskExecutor {
     suspend fun execute(entity: WorkRequestEntity, inputData: TaskData): TaskResult
 }
+
+interface WorkConstraintVerifier{
+    fun isSatisfied(entity: WorkRequestEntity): Boolean
+}

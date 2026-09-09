@@ -64,7 +64,7 @@ actual class Chronos actual constructor(
         WorkChainCoordinator(
             db = db,
             clock = clock,
-            //constraintVerifier = constraintVerifier,
+            constraintProvider = constraintVerifier,
             taskExecutor = taskExecutor
         )
     }

@@ -4,7 +4,7 @@ import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.data.mapper.fromJson
 import io.github.sahilmakkar.chronos.data.mapper.toJson
-import io.github.sahilmakkar.chronos.db.WorkRequestEntity
+import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 import io.github.sahilmakkar.chronos.task.TaskState
 

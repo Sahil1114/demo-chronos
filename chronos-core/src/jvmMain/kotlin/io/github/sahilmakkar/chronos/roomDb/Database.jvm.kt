@@ -1,7 +1,8 @@
-package io.github.sahilmakkar.chronos.db
+package io.github.sahilmakkar.chronos.roomDb
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import kotlinx.coroutines.Dispatchers
 import java.io.File
 
@@ -12,6 +13,6 @@ actual fun createRoomDatabase(): WorkDatabase {
     return Room.databaseBuilder<WorkDatabase>(
         name = dbFile.absolutePath
     ).setDriver(BundledSQLiteDriver())
-     .setQueryCoroutineContext(Dispatchers.IO)
-     .build()
+        .setQueryCoroutineContext(Dispatchers.IO)
+        .build()
 }

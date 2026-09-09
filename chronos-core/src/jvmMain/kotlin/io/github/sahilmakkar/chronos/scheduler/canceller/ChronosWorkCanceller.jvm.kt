@@ -1,6 +1,6 @@
 package io.github.sahilmakkar.chronos.scheduler.canceller
 
-import io.github.sahilmakkar.chronos.db.WorkDatabase
+import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import io.github.sahilmakkar.chronos.task.TaskState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

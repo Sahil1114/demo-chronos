@@ -1,7 +1,7 @@
 package io.github.sahilmakkar.chronos.mapper
 
 import androidx.work.Constraints
-import io.github.sahilmakkar.chronos.db.WorkRequestEntity
+import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
 import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
 import io.github.sahilmakkar.chronos.network.NetworkType

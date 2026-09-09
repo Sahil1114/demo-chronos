@@ -1,4 +1,4 @@
-package io.github.sahilmakkar.chronos.db
+package io.github.sahilmakkar.chronos.roomDb
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver

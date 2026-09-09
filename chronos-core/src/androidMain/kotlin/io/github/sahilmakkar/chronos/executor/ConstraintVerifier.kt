@@ -1,6 +1,6 @@
 package io.github.sahilmakkar.chronos.executor
 
-import io.github.sahilmakkar.chronos.db.WorkRequestEntity
+import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity
 import io.github.sahilmakkar.chronos.db.executor.WorkConstraintVerifier
 
 class WorkConstraintVerifier : WorkConstraintVerifier {

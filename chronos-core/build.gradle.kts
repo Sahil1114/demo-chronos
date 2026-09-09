@@ -21,6 +21,8 @@ kotlin {
             api(libs.kotlinx.coroutines.core)
             api(libs.kotlinx.datetime)
             api(libs.kotlinx.serialization.json)
+            implementation(dependencyNotation = libs.room.runtime)
+            implementation(dependencyNotation = libs.sqlite.bundled)
         }
         commonTest.dependencies {
             implementation(dependencyNotation = kotlin("test"))
@@ -28,13 +30,6 @@ kotlin {
             implementation(dependencyNotation = project(":chronos-testing"))
         }
 
-        val roomBackedMain by creating {
-            dependsOn(commonMain.get())
-            dependencies {
-                implementation(dependencyNotation = libs.room.runtime)
-                implementation(dependencyNotation = libs.sqlite.bundled)
-            }
-        }
 
         androidMain.dependencies {
             implementation(dependencyNotation = libs.workmanager.ktx)
@@ -42,10 +37,6 @@ kotlin {
             implementation(dependencyNotation=libs.androidx.startup.runtime)
 
         }
-
-        jvmMain.get().dependsOn(other = roomBackedMain)
-        appleMain.get().dependsOn(other = roomBackedMain)
-        androidMain.get().dependsOn(other = roomBackedMain)
     }
 }
 

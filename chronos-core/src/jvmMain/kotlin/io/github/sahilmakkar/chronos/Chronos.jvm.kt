@@ -2,11 +2,11 @@
 
 package io.github.sahilmakkar.chronos
 
-import io.github.sahilmakkar.chronos.db.WorkDatabase
-import io.github.sahilmakkar.chronos.db.createRoomDatabase
-import io.github.sahilmakkar.chronos.db.executor.WorkChainCoordinator
+import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
+import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase
+import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator
 import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
-import io.github.sahilmakkar.chronos.db.toWorkInfo
+import io.github.sahilmakkar.chronos.roomDb.toWorkInfo
 import io.github.sahilmakkar.chronos.executer.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
 import io.github.sahilmakkar.chronos.network.NetworkChecker

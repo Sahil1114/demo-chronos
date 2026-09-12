@@ -2,14 +2,13 @@
 
 package io.github.sahilmakkar.chronos
 
+import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
+import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
+import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase
 import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator
-import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
 import io.github.sahilmakkar.chronos.roomDb.toWorkInfo
-import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
-import io.github.sahilmakkar.chronos.worker.WorkerRegistry
-import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
 import io.github.sahilmakkar.chronos.scheduler.WorkObserver
 import io.github.sahilmakkar.chronos.scheduler.canceller.WorkCanceller
@@ -21,15 +20,13 @@ import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 
 actual class Chronos actual constructor(
     actual val registry: WorkerRegistry,
@@ -67,6 +64,10 @@ actual class Chronos actual constructor(
         )
     }
 
+    private val daemon by lazy {
+        Daemon(coroutineScope = coroutineScope, coordinator = coordinator)
+    }
+
     private val enqueuer by lazy {
         ChronosWorkEnqueuer(
             db = db,
@@ -81,11 +82,7 @@ actual class Chronos actual constructor(
 
     init {
         Chronos.initialize(this)
-        coroutineScope.launch {
-            coordinator.sweepOrphans()
-            coordinator.sweepChainRecovery()
-            startDaemonLoop()
-        }
+        daemon.start()
     }
 
     // --- WorkEnqueuer — delegated to ChronosWorkEnqueuer ---
@@ -127,21 +124,8 @@ actual class Chronos actual constructor(
     // --- AutoCloseable ---
 
     actual override fun close() {
+        daemon.stop()
         coroutineScope.cancel()
         db.close()
-    }
-
-    // --- Daemon ---
-
-    private fun startDaemonLoop() {
-        coroutineScope.launch {
-            while (isActive) {
-                try {
-                    coordinator.runPendingTasks()
-                } catch (e: Exception) { /* keep alive */
-                }
-                delay(1000)
-            }
-        }
     }
 }

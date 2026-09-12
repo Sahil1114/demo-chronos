@@ -2,18 +2,16 @@
 
 package io.github.sahilmakkar.chronos
 
+import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
+import io.github.sahilmakkar.chronos.executor.IosBackgroundTaskScheduler
+import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
+import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase
 import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator
-import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
 import io.github.sahilmakkar.chronos.roomDb.toWorkInfo
-import io.github.sahilmakkar.chronos.executor.IosBackgroundTaskScheduler
-import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
-import io.github.sahilmakkar.chronos.worker.WorkerRegistry
-import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
 import io.github.sahilmakkar.chronos.scheduler.WorkObserver
-import io.github.sahilmakkar.chronos.scheduler.canceller.ChronosWorkCanceller
 import io.github.sahilmakkar.chronos.scheduler.canceller.WorkCanceller
 import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.ChronosWorkEnqueuer
 import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.WorkEnqueuer
@@ -23,13 +21,13 @@ import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 
 actual class Chronos actual constructor(
     actual val registry: WorkerRegistry,
@@ -45,9 +43,9 @@ actual class Chronos actual constructor(
     actual val networkChecker: NetworkChecker by lazy { IosNetworkChecker() }
 
     private val canceller by lazy {
-        ChronosWorkCanceller(
-            db = db,
-            scope = coroutineScope
+        io.github.sahilmakkar.chronos.scheduler.canceller.ChronosWorkCanceller(
+            db,
+            coroutineScope
         )
     }
 
@@ -66,12 +64,18 @@ actual class Chronos actual constructor(
             taskExecutor = taskExecutor
         )
     }
-
     private val bgTaskScheduler by lazy {
         IosBackgroundTaskScheduler(
             coroutineScope = coroutineScope,
             onTaskFired = { coordinator.runPendingTasks() },
             onExpired = { coordinator.sweepOrphans() }
+        )
+    }
+    private val daemon by lazy {
+        Daemon(
+            coroutineScope = coroutineScope,
+            coordinator = coordinator,
+            scheduler = bgTaskScheduler
         )
     }
 
@@ -88,12 +92,7 @@ actual class Chronos actual constructor(
 
     init {
         Chronos.initialize(this)
-        coroutineScope.launch {
-            coordinator.sweepOrphans()
-            coordinator.sweepChainRecovery()
-            coordinator.runPendingTasks()
-        }
-        bgTaskScheduler.register()
+        daemon.start()
     }
 
     // --- WorkEnqueuer — delegated to ChronosWorkEnqueuer ---
@@ -135,6 +134,7 @@ actual class Chronos actual constructor(
     // --- AutoCloseable ---
 
     actual override fun close() {
+        daemon.stop()
         coroutineScope.cancel()
         db.close()
     }

@@ -24,6 +24,10 @@ class IosBackgroundTaskScheduler(
         }
     }
 
+    fun cancelScheduled() {
+        BGTaskScheduler.sharedScheduler.cancelTaskRequestWithIdentifier(bgTaskId)
+    }
+
     fun scheduleForRequest(request: TaskRequest) {
         if (NSBundle.mainBundle.bundleIdentifier == null) return
         val delaySec = request.initialDelay.inWholeSeconds.toDouble()

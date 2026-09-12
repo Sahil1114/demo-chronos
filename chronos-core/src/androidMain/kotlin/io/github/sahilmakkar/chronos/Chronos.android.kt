@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.work.WorkManager
 import io.github.sahilmakkar.chronos.executor.AndroidTaskExecutor
 import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
-import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase
@@ -22,17 +21,13 @@ import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-
-private const val DAEMON_LOOP_INTERVAL_MS = 1000L
 
 actual class Chronos actual constructor(
     actual val registry: WorkerRegistry,
@@ -42,17 +37,27 @@ actual class Chronos actual constructor(
     PlatformScheduler,
     AutoCloseable {
 
+    // Instance-scoped, not a top-level global. Only ever set by the
+    // (Context, WorkerRegistry) constructor below.
     private var androidContext: Context? = null
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /**
+     * The registry-only primary constructor exists to satisfy the
+     * `expect class Chronos` signature, but Chronos is not functional on
+     * Android without a Context. All real startup work happens here --
+     * after androidContext is assigned -- rather than in an init block on
+     * the primary constructor, to avoid racing daemon.start() against this
+     * assignment (see prior discussion on constructor ordering).
+     */
     constructor(
         context: Context,
         registry: WorkerRegistry,
     ) : this(registry = registry) {
         androidContext = context.applicationContext
         Chronos.initialize(this)
-        startup()
+        daemon.start()
     }
 
     private val workManager: WorkManager by lazy {
@@ -81,6 +86,10 @@ actual class Chronos actual constructor(
         )
     }
 
+    private val daemon by lazy {
+        Daemon(coroutineScope = coroutineScope, coordinator = coordinator)
+    }
+
     private val enqueuer by lazy {
         ChronosWorkEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
     }
@@ -94,20 +103,6 @@ actual class Chronos actual constructor(
     }
 
     actual companion object {}
-
-    /**
-     * Runs orphan/chain recovery, then a first pending-tasks pass, then starts the daemon
-     * loop -- all sequenced inside one coroutine so the daemon loop can never start polling
-     * before recovery has completed.
-     */
-    private fun startup() {
-        coroutineScope.launch {
-            coordinator.sweepOrphans()
-            coordinator.sweepChainRecovery()
-            coordinator.runPendingTasks()
-            startDaemonLoop()
-        }
-    }
 
     // --- WorkEnqueuer ---
 
@@ -159,25 +154,9 @@ actual class Chronos actual constructor(
     // --- AutoCloseable ---
 
     actual override fun close() {
+        daemon.stop()
         coroutineScope.cancel()
         db.close()
         // WorkManager manages its own lifecycle -- no close needed
-    }
-
-    // --- Daemon ---
-
-    private fun startDaemonLoop() {
-        coroutineScope.launch {
-            while (isActive) {
-                try {
-                    coordinator.runPendingTasks()
-                } catch (e: Exception) {
-                    // TODO: route through your logger instead of swallowing silently --
-                    // otherwise a real bug here just looks like "tasks stopped progressing"
-                    // with no trace of why.
-                }
-                delay(DAEMON_LOOP_INTERVAL_MS)
-            }
-        }
     }
 }

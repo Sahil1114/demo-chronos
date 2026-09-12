@@ -2,8 +2,8 @@ package io.github.sahilmakkar.chronos
 
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.workDataOf
-import io.github.sahilmakkar.chronos.kmpWorker.KmpWorker
-import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
+import io.github.sahilmakkar.chronos.worker.Worker
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import io.github.sahilmakkar.chronos.testing.*
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.TaskResult
@@ -50,7 +50,7 @@ class ChronosTest {
         assertEquals("C:\\path\\to\\file", deserialized.getString("slashes"))
     }
 
-    class TestWorker(inputData: TaskData) : KmpWorker(inputData) {
+    class TestWorker(inputData: TaskData) : Worker(inputData) {
         override suspend fun doWork(): TaskResult {
             val num = inputData.getInt("num", 0)
             return if (num > 0) {

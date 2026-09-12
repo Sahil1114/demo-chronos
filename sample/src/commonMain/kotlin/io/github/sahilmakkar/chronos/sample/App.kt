@@ -18,15 +18,15 @@ import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.model.workDataOf
-import io.github.sahilmakkar.chronos.kmpWorker.KmpWorker
-import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
+import io.github.sahilmakkar.chronos.worker.Worker
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
 
-class SampleSuccessWorker(inputData: TaskData) : KmpWorker(inputData) {
+class SampleSuccessWorker(inputData: TaskData) : Worker(inputData) {
     override suspend fun doWork(): TaskResult {
         setProgress(workDataOf("status" to "Working: step 1/2"))
         delay(1000)
@@ -36,7 +36,7 @@ class SampleSuccessWorker(inputData: TaskData) : KmpWorker(inputData) {
     }
 }
 
-class SampleFailureWorker(inputData: TaskData) : KmpWorker(inputData) {
+class SampleFailureWorker(inputData: TaskData) : Worker(inputData) {
     override suspend fun doWork(): TaskResult {
         setProgress(workDataOf("status" to "Processing..."))
         delay(1500)
@@ -44,7 +44,7 @@ class SampleFailureWorker(inputData: TaskData) : KmpWorker(inputData) {
     }
 }
 
-class SampleRetryWorker(inputData: TaskData) : KmpWorker(inputData) {
+class SampleRetryWorker(inputData: TaskData) : Worker(inputData) {
     override suspend fun doWork(): TaskResult {
         setProgress(workDataOf("status" to "Attempting run..."))
         delay(1000)

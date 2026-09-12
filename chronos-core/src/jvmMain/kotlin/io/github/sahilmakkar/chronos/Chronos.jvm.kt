@@ -7,8 +7,8 @@ import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase
 import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator
 import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
 import io.github.sahilmakkar.chronos.roomDb.toWorkInfo
-import io.github.sahilmakkar.chronos.executer.WorkConstraintVerifier
-import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
+import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
 import io.github.sahilmakkar.chronos.scheduler.WorkObserver

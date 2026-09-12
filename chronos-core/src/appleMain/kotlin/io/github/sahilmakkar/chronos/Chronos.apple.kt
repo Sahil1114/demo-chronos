@@ -9,10 +9,11 @@ import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
 import io.github.sahilmakkar.chronos.roomDb.toWorkInfo
 import io.github.sahilmakkar.chronos.executor.IosBackgroundTaskScheduler
 import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
-import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
 import io.github.sahilmakkar.chronos.scheduler.WorkObserver
+import io.github.sahilmakkar.chronos.scheduler.canceller.ChronosWorkCanceller
 import io.github.sahilmakkar.chronos.scheduler.canceller.WorkCanceller
 import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.ChronosWorkEnqueuer
 import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.WorkEnqueuer
@@ -44,9 +45,9 @@ actual class Chronos actual constructor(
     actual val networkChecker: NetworkChecker by lazy { IosNetworkChecker() }
 
     private val canceller by lazy {
-        io.github.sahilmakkar.chronos.scheduler.canceller.ChronosWorkCanceller(
-            db,
-            coroutineScope
+        ChronosWorkCanceller(
+            db = db,
+            scope = coroutineScope
         )
     }
 

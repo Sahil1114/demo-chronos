@@ -1,4 +1,4 @@
-package io.github.sahilmakkar.chronos.executer
+package io.github.sahilmakkar.chronos.executor
 
 import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
 import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity

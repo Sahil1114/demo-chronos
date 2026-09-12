@@ -4,7 +4,7 @@ import io.github.sahilmakkar.chronos.*
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.model.workDataOf
-import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import io.github.sahilmakkar.chronos.task.constraints.PlatformCapabilities
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.TaskChain

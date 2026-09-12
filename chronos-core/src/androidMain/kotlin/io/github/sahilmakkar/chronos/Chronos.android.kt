@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.work.WorkManager
 import io.github.sahilmakkar.chronos.executor.AndroidTaskExecutor
 import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
-import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase
@@ -32,6 +32,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+private const val DAEMON_LOOP_INTERVAL_MS = 1000L
+
 actual class Chronos actual constructor(
     actual val registry: WorkerRegistry,
 ) : WorkEnqueuer,
@@ -40,12 +42,17 @@ actual class Chronos actual constructor(
     PlatformScheduler,
     AutoCloseable {
 
+    private var androidContext: Context? = null
+
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     constructor(
         context: Context,
         registry: WorkerRegistry,
     ) : this(registry = registry) {
         androidContext = context.applicationContext
         Chronos.initialize(this)
+        startup()
     }
 
     private val workManager: WorkManager by lazy {
@@ -61,8 +68,6 @@ actual class Chronos actual constructor(
     }
 
     val db: WorkDatabase = createRoomDatabase()
-
-    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val taskExecutor by lazy {
         AndroidTaskExecutor(workManager = workManager, db = db)
@@ -90,14 +95,18 @@ actual class Chronos actual constructor(
 
     actual companion object {}
 
-    init {
-        Chronos.initialize(this)
+    /**
+     * Runs orphan/chain recovery, then a first pending-tasks pass, then starts the daemon
+     * loop -- all sequenced inside one coroutine so the daemon loop can never start polling
+     * before recovery has completed.
+     */
+    private fun startup() {
         coroutineScope.launch {
             coordinator.sweepOrphans()
             coordinator.sweepChainRecovery()
             coordinator.runPendingTasks()
+            startDaemonLoop()
         }
-        startDaemonLoop()
     }
 
     // --- WorkEnqueuer ---
@@ -163,11 +172,12 @@ actual class Chronos actual constructor(
                 try {
                     coordinator.runPendingTasks()
                 } catch (e: Exception) {
+                    // TODO: route through your logger instead of swallowing silently --
+                    // otherwise a real bug here just looks like "tasks stopped progressing"
+                    // with no trace of why.
                 }
-                delay(1000)
+                delay(DAEMON_LOOP_INTERVAL_MS)
             }
         }
     }
 }
-
-var androidContext: Context? = null

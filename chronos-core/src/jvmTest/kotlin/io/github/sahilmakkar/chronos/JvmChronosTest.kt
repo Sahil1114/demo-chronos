@@ -18,8 +18,8 @@ import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
 import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.workDataOf
-import io.github.sahilmakkar.chronos.kmpWorker.KmpWorker
-import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
+import io.github.sahilmakkar.chronos.worker.Worker
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
@@ -33,19 +33,19 @@ class JvmChronosTest {
     private lateinit var chronos: Chronos
     private lateinit var db: WorkDatabase
 
-    class SuccessWorker(data: TaskData) : KmpWorker(data) {
+    class SuccessWorker(data: TaskData) : Worker(data) {
         override suspend fun doWork(): TaskResult = TaskResult.Success(workDataOf("ok" to true))
     }
 
-    class FailureWorker(data: TaskData) : KmpWorker(data) {
+    class FailureWorker(data: TaskData) : Worker(data) {
         override suspend fun doWork(): TaskResult = TaskResult.Failure(workDataOf("failed" to true))
     }
 
-    class RetryWorker(data: TaskData) : KmpWorker(data) {
+    class RetryWorker(data: TaskData) : Worker(data) {
         override suspend fun doWork(): TaskResult = TaskResult.Retry
     }
 
-    class TimeoutWorker(data: TaskData) : KmpWorker(data) {
+    class TimeoutWorker(data: TaskData) : Worker(data) {
         override suspend fun doWork(): TaskResult {
             delay(2000)
             return TaskResult.Success()

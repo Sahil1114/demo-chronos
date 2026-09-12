@@ -7,10 +7,6 @@ import kotlinx.coroutines.launch
 import platform.BackgroundTasks.*
 import platform.Foundation.*
 
-/**
- * Wraps iOS [BGTaskScheduler] registration and scheduling.
- * Handles app refresh task registration, expiration, and rescheduling.
- */
 class IosBackgroundTaskScheduler(
     private val coroutineScope: CoroutineScope,
     private val onTaskFired: suspend () -> Unit,

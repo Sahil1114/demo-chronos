@@ -19,7 +19,7 @@ import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.workDataOf
 import io.github.sahilmakkar.chronos.kmpWorker.KmpWorker
-import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
+import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
 import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
@@ -28,7 +28,7 @@ import io.github.sahilmakkar.chronos.task.TaskState
 
 class JvmChronosTest {
 
-    private lateinit var registry: KmpWorkerRegistry
+    private lateinit var registry: WorkerRegistry
     private lateinit var clock: FakeClock
     private lateinit var chronos: Chronos
     private lateinit var db: WorkDatabase
@@ -54,7 +54,7 @@ class JvmChronosTest {
 
     @BeforeTest
     fun setUp() {
-        registry = KmpWorkerRegistry().apply {
+        registry = WorkerRegistry().apply {
             register("io.github.sahilmakkar.chronos.JvmChronosTest.SuccessWorker") { SuccessWorker(it) }
             register("io.github.sahilmakkar.chronos.JvmChronosTest.FailureWorker") { FailureWorker(it) }
             register("io.github.sahilmakkar.chronos.JvmChronosTest.RetryWorker") { RetryWorker(it) }

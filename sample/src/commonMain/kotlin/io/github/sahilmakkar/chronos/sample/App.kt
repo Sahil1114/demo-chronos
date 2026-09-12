@@ -19,7 +19,7 @@ import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.model.workDataOf
 import io.github.sahilmakkar.chronos.kmpWorker.KmpWorker
-import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
+import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
@@ -52,8 +52,8 @@ class SampleRetryWorker(inputData: TaskData) : KmpWorker(inputData) {
     }
 }
 
-fun createSampleRegistry(): KmpWorkerRegistry {
-    return KmpWorkerRegistry().apply {
+fun createSampleRegistry(): WorkerRegistry {
+    return WorkerRegistry().apply {
         register("io.github.sahilmakkar.chronos.sample.SampleSuccessWorker") { SampleSuccessWorker(it) }
         register("io.github.sahilmakkar.chronos.sample.SampleFailureWorker") { SampleFailureWorker(it) }
         register("io.github.sahilmakkar.chronos.sample.SampleRetryWorker") { SampleRetryWorker(it) }

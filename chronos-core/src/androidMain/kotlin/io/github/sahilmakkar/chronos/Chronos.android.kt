@@ -2,14 +2,14 @@ package io.github.sahilmakkar.chronos
 
 import android.content.Context
 import androidx.work.WorkManager
+import io.github.sahilmakkar.chronos.executor.AndroidTaskExecutor
+import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
+import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
+import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase
 import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator
 import io.github.sahilmakkar.chronos.roomDb.toWorkInfo
-import io.github.sahilmakkar.chronos.executor.AndroidTaskExecutor
-import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
-import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
-import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
 import io.github.sahilmakkar.chronos.scheduler.WorkObserver
 import io.github.sahilmakkar.chronos.scheduler.canceller.ChronosWorkCanceller
@@ -22,8 +22,6 @@ import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
-import io.github.sahilmakkar.chronos.utils.KmpClock
-import io.github.sahilmakkar.chronos.utils.SystemClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,8 +33,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 actual class Chronos actual constructor(
-    actual val registry: KmpWorkerRegistry,
-    actual val clock: KmpClock
+    actual val registry: WorkerRegistry,
 ) : WorkEnqueuer,
     WorkCanceller,
     WorkObserver,
@@ -45,9 +42,8 @@ actual class Chronos actual constructor(
 
     constructor(
         context: Context,
-        registry: KmpWorkerRegistry,
-        clock: KmpClock = SystemClock
-    ) : this(registry, clock) {
+        registry: WorkerRegistry,
+    ) : this(registry = registry) {
         androidContext = context.applicationContext
         Chronos.initialize(this)
     }
@@ -64,7 +60,6 @@ actual class Chronos actual constructor(
         )
     }
 
-    // Room DB — source of truth for all task state on Android
     val db: WorkDatabase = createRoomDatabase()
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -76,14 +71,13 @@ actual class Chronos actual constructor(
     private val coordinator by lazy {
         WorkChainCoordinator(
             db = db,
-            clock = clock,
             taskExecutor = taskExecutor,
             constraintProvider = WorkConstraintVerifier()
         )
     }
 
     private val enqueuer by lazy {
-        ChronosWorkEnqueuer(db, clock, coroutineScope, coordinator)
+        ChronosWorkEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
     }
 
     private val canceller by lazy {

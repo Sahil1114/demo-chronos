@@ -5,8 +5,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import io.github.sahilmakkar.chronos.AndroidDelegatingWorker
-import io.github.sahilmakkar.chronos.data.mapper.fromJson
-import io.github.sahilmakkar.chronos.data.mapper.toJson
+import io.github.sahilmakkar.chronos.task.model.fromJson
+import io.github.sahilmakkar.chronos.task.model.toJson
 import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
 import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity
 import io.github.sahilmakkar.chronos.db.executor.TaskExecutor

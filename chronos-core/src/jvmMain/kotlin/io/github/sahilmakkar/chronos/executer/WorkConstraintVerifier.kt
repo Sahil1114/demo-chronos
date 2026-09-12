@@ -5,18 +5,13 @@ import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity
 import io.github.sahilmakkar.chronos.db.executor.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.network.NetworkType
-import io.github.sahilmakkar.chronos.utils.KmpClock
-import kotlinx.datetime.Instant
 import kotlinx.datetime.toLocalDateTime
 import java.io.File
+import kotlin.time.Clock
+import kotlin.time.Instant
 
-/**
- * Verifies that a [WorkRequestEntity]'s constraints are satisfied before execution.
- * JVM best-effort: charging and battery constraints are not supported and are silently skipped.
- */
- class WorkConstraintVerifier(
+class WorkConstraintVerifier(
     private val networkChecker: NetworkChecker,
-    private val clock: KmpClock
 ) : WorkConstraintVerifier {
 
     override fun isSatisfied(entity: WorkRequestEntity): Boolean {
@@ -36,7 +31,10 @@ import java.io.File
         val start = entity.windowStartHour ?: return true
         val end = entity.windowEndHour ?: return true
         val tz = entity.windowTimeZone ?: return true
-        return isInsideTimeWindow(TimeWindow(start, end, tz), clock.now())
+        return isInsideTimeWindow(
+            window = TimeWindow(startHour = start, endHour = end, timeZone = tz),
+            now = Clock.System.now()
+        )
     }
 
     private fun isStorageNotLow(): Boolean =

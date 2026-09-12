@@ -483,7 +483,7 @@ null          → Always return null (pass)
 TimeWindow    → Check current time against window
                ALL PLATFORMS (pure Kotlin logic):
 
-               val now = clock.now()
+               val now = Clock.System.now()
                    .toLocalDateTime(timeWindow.timeZone)
                val currentHour = now.hour
 

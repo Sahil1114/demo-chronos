@@ -282,7 +282,7 @@ JvmWorkManager.initialize()
     └── Start daemon coroutine loop
            │
            │  while (isActive) {
-           │      val dueTasks = dao.getTasksDueNow(clock.now())
+           │      val dueTasks = dao.getTasksDueNow(Clock.System.now())
            │      dueTasks.forEach { task ->
            │          if (constraintPipeline.evaluate(task.constraints)
            │                 is Satisfied) {

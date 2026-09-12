@@ -7,20 +7,15 @@ import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity
 import io.github.sahilmakkar.chronos.db.executor.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.network.NetworkType
-import io.github.sahilmakkar.chronos.utils.KmpClock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toLocalDateTime
 import platform.Foundation.*
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceBatteryState
+import kotlin.time.Clock
 
-/**
- * Verifies that a [WorkRequestEntity]'s constraints are satisfied before execution on iOS.
- * Checks network, battery, charging, storage, and time window constraints natively.
- */
 class WorkConstraintVerifier(
     private val networkChecker: NetworkChecker,
-    private val clock: KmpClock
 ) : WorkConstraintVerifier {
 
     override fun isSatisfied(entity: WorkRequestEntity): Boolean {
@@ -42,7 +37,7 @@ class WorkConstraintVerifier(
         val start = entity.windowStartHour ?: return true
         val end = entity.windowEndHour ?: return true
         val tz = entity.windowTimeZone ?: return true
-        return isInsideTimeWindow(TimeWindow(start, end, tz), clock.now())
+        return isInsideTimeWindow(TimeWindow(startHour = start, endHour = end, timeZone = tz), Clock.System.now())
     }
 
     private fun isInsideTimeWindow(window: TimeWindow, now: Instant): Boolean {

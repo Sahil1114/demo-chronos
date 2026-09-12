@@ -3,7 +3,7 @@ package io.github.sahilmakkar.chronos
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.workDataOf
 import io.github.sahilmakkar.chronos.kmpWorker.KmpWorker
-import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
+import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
 import io.github.sahilmakkar.chronos.testing.*
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.TaskResult
@@ -63,7 +63,7 @@ class ChronosTest {
 
     @Test
     fun testSynchronousExecution() = runTest {
-        val registry = KmpWorkerRegistry().apply {
+        val registry = WorkerRegistry().apply {
             register("io.github.sahilmakkar.chronos.ChronosTest.TestWorker") { TestWorker(it) }
         }
         val scheduler = TestChronos(registry)
@@ -83,7 +83,7 @@ class ChronosTest {
 
     @Test
     fun testFailedWorkerSynchronous() = runTest {
-        val registry = KmpWorkerRegistry().apply {
+        val registry = WorkerRegistry().apply {
             register("io.github.sahilmakkar.chronos.ChronosTest.TestWorker") { TestWorker(it) }
         }
         val scheduler = TestChronos(registry)

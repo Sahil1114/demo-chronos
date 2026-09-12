@@ -4,12 +4,11 @@ import io.github.sahilmakkar.chronos.*
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.model.workDataOf
-import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
+import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
 import io.github.sahilmakkar.chronos.task.constraints.PlatformCapabilities
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.network.NetworkChecker
-import io.github.sahilmakkar.chronos.utils.KmpClock
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
@@ -44,7 +43,7 @@ class FakeClock(var currentTime: Instant = Instant.fromEpochMilliseconds(0)) : K
  * @property clock The mock clock implementation.
  */
 class TestChronos(
-    override val registry: KmpWorkerRegistry = KmpWorkerRegistry(),
+    override val registry: WorkerRegistry = WorkerRegistry(),
     override val clock: KmpClock = FakeClock()
 ) : Chronos(registry, clock) {
     val enqueuedRequests = mutableListOf<TaskRequest>()

@@ -2,7 +2,7 @@ package io.github.sahilmakkar.chronos.mapper
 
 import androidx.work.WorkInfo
 import io.github.sahilmakkar.chronos.task.model.TaskData
-import io.github.sahilmakkar.chronos.data.mapper.fromJson
+import io.github.sahilmakkar.chronos.task.model.fromJson
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.TaskState
 

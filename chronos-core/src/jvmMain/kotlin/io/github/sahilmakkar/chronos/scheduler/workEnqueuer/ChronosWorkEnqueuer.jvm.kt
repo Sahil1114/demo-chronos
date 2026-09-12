@@ -9,16 +9,15 @@ import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
-import io.github.sahilmakkar.chronos.utils.KmpClock
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 actual class ChronosWorkEnqueuer(
     private val db: WorkDatabase,
-    private val clock: KmpClock,
     private val coroutineScope: CoroutineScope,
     private val coordinator: WorkChainCoordinator
 ) : WorkEnqueuer {
@@ -26,7 +25,7 @@ actual class ChronosWorkEnqueuer(
     actual override fun enqueue(request: TaskRequest) {
         coroutineScope.launch {
             db.workDao().insertWorkRequest(
-                request.toEntity(clock.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds)
+                request.toEntity(Clock.System.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds)
             )
             db.workDao().insertTags(request.tags.map { WorkTagEntity(request.id, it) })
             coordinator.runPendingTasks()
@@ -83,7 +82,7 @@ actual class ChronosWorkEnqueuer(
     actual override fun enqueue(chain: TaskChain) {
         if (chain.requests.isEmpty()) return
         coroutineScope.launch {
-            val nowMs = clock.now().toEpochMilliseconds()
+            val nowMs = Clock.System.now().toEpochMilliseconds()
             val dependencies = mutableListOf<WorkDependencyEntity>()
             chain.requests.forEachIndexed { i, req ->
                 db.workDao().insertWorkRequest(
@@ -118,7 +117,7 @@ actual class ChronosWorkEnqueuer(
     private suspend fun insertUnique(request: TaskRequest, uniqueName: String) {
         db.workDao().insertWorkRequest(
             request.toEntity(
-                scheduledAt = clock.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
+                scheduledAt = Clock.System.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
                 uniqueName = uniqueName
             )
         )
@@ -132,7 +131,7 @@ actual class ChronosWorkEnqueuer(
     ) {
         db.workDao().insertWorkRequest(
             request.toEntity(
-                scheduledAt = clock.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
+                scheduledAt = Clock.System.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
                 uniqueName = uniqueName
             )
         )

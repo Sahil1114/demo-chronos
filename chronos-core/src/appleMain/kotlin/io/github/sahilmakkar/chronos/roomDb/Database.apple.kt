@@ -10,10 +10,6 @@ import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
-/**
- * Apple iOS/macOS actual implementation of [io.github.sahilmakkar.chronos.roomDb.createRoomDatabase] that instantiates the Room database
- * under the standard iOS/macOS Documents directory.
- */
 @OptIn(ExperimentalForeignApi::class)
 actual fun createRoomDatabase(): WorkDatabase {
     val documentDirectory = NSFileManager.defaultManager.URLForDirectory(

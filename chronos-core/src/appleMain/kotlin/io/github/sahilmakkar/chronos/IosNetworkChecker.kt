@@ -4,10 +4,6 @@ import io.github.sahilmakkar.chronos.network.NetworkChecker
 import platform.Network.*
 import platform.darwin.dispatch_get_main_queue
 
-/**
- * Apple iOS implementation of [io.github.sahilmakkar.chronos.network.NetworkChecker] that uses native Network framework APIs
- * ([nw_path_monitor_t]) to observe cellular/Wi-Fi connection states.
- */
 class IosNetworkChecker : NetworkChecker {
     private var connected = true
     private var expensive = false

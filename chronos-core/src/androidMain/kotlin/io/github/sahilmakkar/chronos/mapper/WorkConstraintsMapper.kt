@@ -42,7 +42,7 @@ internal object WorkConstraintsMapper {
         NetworkType.UNMETERED -> androidx.work.NetworkType.UNMETERED
     }
 
-    fun a (){}
+    fun a() {}
 }
 
 

@@ -8,11 +8,12 @@ import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator
 import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
 import io.github.sahilmakkar.chronos.roomDb.toWorkInfo
 import io.github.sahilmakkar.chronos.executer.WorkConstraintVerifier
-import io.github.sahilmakkar.chronos.kmpWorker.KmpWorkerRegistry
+import io.github.sahilmakkar.chronos.kmpWorker.WorkerRegistry
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
 import io.github.sahilmakkar.chronos.scheduler.WorkObserver
 import io.github.sahilmakkar.chronos.scheduler.canceller.WorkCanceller
+import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.ChronosWorkEnqueuer
 import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.WorkEnqueuer
 import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
@@ -20,7 +21,6 @@ import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
-import io.github.sahilmakkar.chronos.utils.KmpClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,8 +32,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 actual class Chronos actual constructor(
-    actual val registry: KmpWorkerRegistry,
-    actual val clock: KmpClock
+    actual val registry: WorkerRegistry,
 ) : WorkEnqueuer,
     WorkCanceller,
     WorkObserver,
@@ -53,7 +52,7 @@ actual class Chronos actual constructor(
     }
 
     private val constraintVerifier by lazy {
-        WorkConstraintVerifier(networkChecker, clock)
+        WorkConstraintVerifier(networkChecker = networkChecker)
     }
 
     private val taskExecutor by lazy {
@@ -63,16 +62,14 @@ actual class Chronos actual constructor(
     private val coordinator by lazy {
         WorkChainCoordinator(
             db = db,
-            clock = clock,
             constraintProvider = constraintVerifier,
             taskExecutor = taskExecutor
         )
     }
 
     private val enqueuer by lazy {
-        io.github.sahilmakkar.chronos.scheduler.workEnqueuer.ChronosWorkEnqueuer(
+        ChronosWorkEnqueuer(
             db = db,
-            clock = clock,
             coroutineScope = coroutineScope,
             coordinator = coordinator
         )

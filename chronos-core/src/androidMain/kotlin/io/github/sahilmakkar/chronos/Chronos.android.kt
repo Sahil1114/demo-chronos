@@ -13,16 +13,22 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-fun Chronos.Companion.initialize(context: Context, registry: WorkerRegistry): Chronos {
-    val impl = buildAndroidChronos(context, registry)
+actual fun Chronos.Companion.initialize(
+    support: PlatformSupport,
+    registry: WorkerRegistry
+): Chronos {
+    val impl = buildAndroidChronos(support = support, registry = registry)
     ChronosRegistry.set(impl)
     return impl
 }
 
-internal fun buildAndroidChronos(context: Context, registry: WorkerRegistry): ChronosEngine {
-    val appContext = context.applicationContext
+internal fun buildAndroidChronos(
+    support: PlatformSupport,
+    registry: WorkerRegistry
+): ChronosEngine {
+    val appContext = support.context.applicationContext
     val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val db = createRoomDatabase()
+    val db = createRoomDatabase(support)
     val workManager = WorkManager.getInstance(appContext)
 
     val taskExecutor = AndroidTaskExecutor(workManager = workManager, db = db)
@@ -39,3 +45,5 @@ internal fun buildAndroidChronos(context: Context, registry: WorkerRegistry): Ch
 
     return ChronosEngine(registry, coroutineScope, db, coordinator, daemon, enqueuer, canceller)
 }
+
+actual class PlatformSupport(val context: Context)

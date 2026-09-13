@@ -12,15 +12,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-fun Chronos.Companion.initialize(registry: WorkerRegistry): Chronos {
-    val impl = buildIosChronos(registry)
+actual fun Chronos.Companion.initialize(
+    support: PlatformSupport,
+    registry: WorkerRegistry
+): Chronos {
+    val impl = buildIosChronos(support = support, registry = registry)
     ChronosRegistry.set(impl)
     return impl
 }
 
-internal fun buildIosChronos(registry: WorkerRegistry): ChronosEngine {
+internal fun buildIosChronos(support: PlatformSupport, registry: WorkerRegistry): ChronosEngine {
     val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val db = createRoomDatabase()
+    val db = createRoomDatabase(support)
     val networkChecker = IosNetworkChecker()
 
 

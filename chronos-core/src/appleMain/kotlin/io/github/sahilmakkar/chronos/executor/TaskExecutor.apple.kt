@@ -1,24 +1,24 @@
-@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+package io.github.sahilmakkar.chronos.db.executor
 
-package io.github.sahilmakkar.chronos.executor
-
-import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
-import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity
-import io.github.sahilmakkar.chronos.db.executor.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.network.NetworkChecker
 import io.github.sahilmakkar.chronos.network.NetworkType
-import kotlinx.datetime.Instant
+import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity
+import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
+import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.datetime.toLocalDateTime
-import platform.Foundation.*
+import platform.Foundation.NSFileManager
+import platform.Foundation.NSFileSystemFreeSize
+import platform.Foundation.NSHomeDirectory
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceBatteryState
 import kotlin.time.Clock
+import kotlin.time.Instant
 
-class WorkConstraintVerifier(
+actual class WorkConstraintVerifier(
     private val networkChecker: NetworkChecker,
-) : WorkConstraintVerifier {
+) {
 
-    override fun isSatisfied(entity: WorkRequestEntity): Boolean {
+    actual fun isSatisfied(entity: WorkRequestEntity): Boolean {
         if (!verifyNetwork(entity)) return false
         if (entity.requiresCharging && !isCharging()) return false
         if (entity.requiresBatteryNotLow && !isBatteryNotLow()) return false
@@ -37,7 +37,10 @@ class WorkConstraintVerifier(
         val start = entity.windowStartHour ?: return true
         val end = entity.windowEndHour ?: return true
         val tz = entity.windowTimeZone ?: return true
-        return isInsideTimeWindow(TimeWindow(startHour = start, endHour = end, timeZone = tz), Clock.System.now())
+        return isInsideTimeWindow(
+            TimeWindow(startHour = start, endHour = end, timeZone = tz),
+            Clock.System.now()
+        )
     }
 
     private fun isInsideTimeWindow(window: TimeWindow, now: Instant): Boolean {
@@ -62,9 +65,12 @@ class WorkConstraintVerifier(
         return device.batteryLevel < 0.0f || device.batteryLevel >= 0.20f
     }
 
+    @OptIn(ExperimentalForeignApi::class)
     private fun isStorageNotLow(): Boolean {
-        val attributes = NSFileManager.defaultManager
-            .attributesOfFileSystemForPath(NSHomeDirectory(), error = null)
+        val attributes = NSFileManager.defaultManager.attributesOfFileSystemForPath(
+            NSHomeDirectory(),
+            error = null
+        )
         val freeSize = attributes?.get(NSFileSystemFreeSize) as? Long ?: return true
         return freeSize > 100_000_000L
     }

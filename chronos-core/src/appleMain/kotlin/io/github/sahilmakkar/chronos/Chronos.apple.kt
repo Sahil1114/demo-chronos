@@ -55,5 +55,13 @@ internal fun buildIosChronos(support: PlatformSupport, registry: WorkerRegistry)
         )
     val canceller = ChronosWorkCanceller(db = db, scope = coroutineScope)
 
-    return ChronosEngine(registry, coroutineScope, db, coordinator, daemon, enqueuer, canceller)
+    return ChronosEngine(
+        registry = registry,
+        coroutineScope = coroutineScope,
+        db = db,
+        coordinator = coordinator,
+        daemon = daemon,
+        enqueuer = enqueuer,
+        canceller = canceller
+    )
 }

@@ -1,6 +1,5 @@
 package io.github.sahilmakkar.chronos
 
-import android.content.Context
 import androidx.work.WorkManager
 import io.github.sahilmakkar.chronos.db.executor.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.executor.AndroidTaskExecutor
@@ -28,8 +27,8 @@ internal fun buildAndroidChronos(
 ): ChronosEngine {
     val appContext = support.context.applicationContext
     val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val db = createRoomDatabase(support)
-    val workManager = WorkManager.getInstance(appContext)
+    val db = createRoomDatabase(support = support)
+    val workManager = WorkManager.getInstance(context = appContext)
 
     val taskExecutor = AndroidTaskExecutor(workManager = workManager, db = db)
     val coordinator = WorkChainCoordinator(
@@ -38,12 +37,16 @@ internal fun buildAndroidChronos(
         constraintProvider = WorkConstraintVerifier()
     )
     val daemon = Daemon(coroutineScope = coroutineScope, coordinator = coordinator)
-    val enqueuer =
-        ChronosWorkEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
-    val canceller =
-        ChronosWorkCanceller(workManager = workManager, db = db, coroutineScope = coroutineScope)
+    val enqueuer = ChronosWorkEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
+    val canceller = ChronosWorkCanceller(workManager = workManager, db = db, coroutineScope = coroutineScope)
 
-    return ChronosEngine(registry, coroutineScope, db, coordinator, daemon, enqueuer, canceller)
+    return ChronosEngine(
+        registry = registry,
+        coroutineScope = coroutineScope,
+        db = db,
+        coordinator = coordinator,
+        daemon = daemon,
+        enqueuer = enqueuer,
+        canceller = canceller
+    )
 }
-
-actual class PlatformSupport(val context: Context)

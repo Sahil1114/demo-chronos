@@ -6,9 +6,6 @@ import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
 import kotlin.time.Duration
 
 
-/**
- * Base abstract class defining a background task request.
- */
 sealed class TaskRequest {
     abstract val id: String
     abstract val workerClassName: String

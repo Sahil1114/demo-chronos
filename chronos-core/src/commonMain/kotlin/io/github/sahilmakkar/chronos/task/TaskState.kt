@@ -1,8 +1,6 @@
 package io.github.sahilmakkar.chronos.task
 
-/**
- * Represents the lifecycle state of a scheduled [io.github.sahilmakkar.chronos.task.request.TaskRequest].
- */
+
 enum class TaskState {
     /**
      * Task is enqueued and waiting for trigger conditions (initial delay, dependencies, constraints) to be met.

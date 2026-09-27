@@ -29,19 +29,19 @@ class TestChronos(
     }
 
     override fun enqueueUniqueWork(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
-        enqueue(request)
+        enqueue(request = request)
     }
 
     override fun enqueueUniquePeriodicWork(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {
-        enqueue(request)
+        enqueue(request = request)
     }
 
     override fun enqueue(chain: TaskChain) {
-        chain.requests.forEach { enqueue(it) }
+        chain.requests.forEach { enqueue(request = it) }
     }
 
     override fun cancelWorkById(id: String) {
-        updateWorkInfo(id, TaskState.CANCELLED)
+        updateWorkInfo(id = id, state = TaskState.CANCELLED)
     }
 
     override fun cancelWorkByTag(tag: String) {
@@ -49,7 +49,7 @@ class TestChronos(
     }
 
     override fun cancelAllWork() {
-        workInfos.value.keys.forEach { cancelWorkById(it) }
+        workInfos.value.keys.forEach { cancelWorkById(id = it) }
     }
 
     override fun getWorkInfoFlow(id: String): Flow<TaskInfo?> {
@@ -69,12 +69,20 @@ class TestChronos(
                 val worker = registry.createWorker(req.workerClassName, req.taskData)
                 val res = worker.doWork()
                 when (res) {
-                    is TaskResult.Success -> updateWorkInfo(req.id, TaskState.SUCCEEDED, res.outputData)
-                    is TaskResult.Failure -> updateWorkInfo(req.id, TaskState.FAILED, res.outputData)
-                    TaskResult.Retry -> updateWorkInfo(req.id, TaskState.RETRYING)
+                    is TaskResult.Success -> updateWorkInfo(
+                        id = req.id,
+                        state = TaskState.SUCCEEDED,
+                        output = res.outputData
+                    )
+                    is TaskResult.Failure -> updateWorkInfo(
+                        id = req.id,
+                        state = TaskState.FAILED,
+                        output = res.outputData
+                    )
+                    TaskResult.Retry -> updateWorkInfo(id = req.id, state = TaskState.RETRYING)
                 }
             } catch (e: Exception) {
-                updateWorkInfo(req.id, TaskState.FAILED)
+                updateWorkInfo(id = req.id, state = TaskState.FAILED)
             }
             iterator.remove()
         }

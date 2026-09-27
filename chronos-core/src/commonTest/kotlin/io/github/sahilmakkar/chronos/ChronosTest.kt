@@ -1,16 +1,20 @@
 package io.github.sahilmakkar.chronos
 
-import io.github.sahilmakkar.chronos.task.model.TaskData
-import io.github.sahilmakkar.chronos.task.model.workDataOf
-import io.github.sahilmakkar.chronos.worker.Worker
-import io.github.sahilmakkar.chronos.worker.WorkerRegistry
-import io.github.sahilmakkar.chronos.testing.*
-import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
+import io.github.sahilmakkar.chronos.task.model.TaskData
+import io.github.sahilmakkar.chronos.task.model.fromJson
+import io.github.sahilmakkar.chronos.task.model.toJson
+import io.github.sahilmakkar.chronos.task.model.workDataOf
+import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
+import io.github.sahilmakkar.chronos.testing.TestChronos
+import io.github.sahilmakkar.chronos.worker.Worker
+import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class ChronosTest {
 
@@ -27,11 +31,20 @@ class ChronosTest {
         val json = original.toJson()
         val deserialized = TaskData.fromJson(json)
 
-        assertEquals("hello world", deserialized.getString("stringKey"))
-        assertEquals(expected = 42, actual = deserialized.getInt("intKey", 0))
-        assertEquals(1234567890L, deserialized.getLong("longKey", 0L))
-        assertEquals(3.14159, deserialized.getDouble("doubleKey", 0.0))
-        assertEquals(true, deserialized.getBoolean("boolKey", false))
+        assertEquals(expected = "hello world", actual = deserialized.getString(key = "stringKey"))
+        assertEquals(expected = 42, actual = deserialized.getInt(key = "intKey", defaultValue = 0))
+        assertEquals(expected = 1234567890L, actual = deserialized.getLong(
+            key = "longKey",
+            defaultValue = 0L
+        ))
+        assertEquals(expected = 3.14159, actual = deserialized.getDouble(
+            key = "doubleKey",
+            defaultValue = 0.0
+        ))
+        assertEquals(expected = true, actual = deserialized.getBoolean(
+            key = "boolKey",
+            defaultValue = false
+        ))
     }
 
     @Test
@@ -76,15 +89,15 @@ class ChronosTest {
         scheduler.runPendingTasksNow()
 
         val info = scheduler.getWorkInfoFlow(req.id).first()
-        assertNotNull(info)
-        assertEquals(TaskState.SUCCEEDED, info.state)
-        assertEquals(42, info.outputData.getInt("result", 0))
+        assertNotNull(actual = info)
+        assertEquals(expected = TaskState.SUCCEEDED, actual = info.state)
+        assertEquals(expected = 42, actual = info.outputData.getInt("result", 0))
     }
 
     @Test
     fun testFailedWorkerSynchronous() = runTest {
         val registry = WorkerRegistry().apply {
-            register("io.github.sahilmakkar.chronos.ChronosTest.TestWorker") { TestWorker(it) }
+            register(className = "io.github.sahilmakkar.chronos.ChronosTest.TestWorker") { TestWorker(it) }
         }
         val scheduler = TestChronos(registry)
 
@@ -92,12 +105,12 @@ class ChronosTest {
             .setInputData(workDataOf("num" to 0))
             .build()
 
-        scheduler.enqueue(req)
+        scheduler.enqueue(request = req)
         scheduler.runPendingTasksNow()
 
-        val info = scheduler.getWorkInfoFlow(req.id).first()
-        assertNotNull(info)
-        assertEquals(TaskState.FAILED, info.state)
-        assertEquals("invalid number", info.outputData.getString("error"))
+        val info = scheduler.getWorkInfoFlow(id = req.id).first()
+        assertNotNull(actual = info)
+        assertEquals(expected = TaskState.FAILED, actual = info.state)
+        assertEquals(expected = "invalid number", actual = info.outputData.getString("error"))
     }
 }

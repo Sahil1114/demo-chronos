@@ -23,6 +23,7 @@ kotlin {
             api(libs.kotlinx.serialization.json)
             implementation(dependencyNotation = libs.room.runtime)
             implementation(dependencyNotation = libs.sqlite.bundled)
+            implementation(project(":chronos-processor"))
         }
         commonTest.dependencies {
             implementation(dependencyNotation = kotlin("test"))
@@ -56,4 +57,9 @@ dependencies {
     add("kspIosArm64", libs.room.compiler)
     add("kspIosSimulatorArm64", libs.room.compiler)
     add("kspJvm", libs.room.compiler)
+
+    add("kspAndroid", project(":chronos-processor"))
+    add("kspIosArm64", project(":chronos-processor"))
+    add("kspIosSimulatorArm64", project(":chronos-processor"))
+    add("kspJvm", project(":chronos-processor"))
 }

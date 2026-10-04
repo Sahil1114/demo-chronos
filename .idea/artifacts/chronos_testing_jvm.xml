@@ -1,8 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="chronos-testing-jvm">
     <output-path>$PROJECT_DIR$/chronos-testing/build/libs</output-path>
-    <root id="archive" name="chronos-testing-jvm.jar">
-      <element id="module-output" name="Chronos.chronos-testing.jvmMain" />
-    </root>
+    <root id="archive" name="chronos-testing-jvm.jar" />
   </artifact>
 </component>

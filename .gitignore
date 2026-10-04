@@ -18,3 +18,4 @@ local.properties
 /chronos-testing/build
 /sample/build
 .konan/
+/docs/

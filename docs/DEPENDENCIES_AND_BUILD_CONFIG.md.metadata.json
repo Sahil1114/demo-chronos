@@ -1,5 +1,0 @@
-{
-  "summary": "Project dependency and build configuration document updated to reflect the Chronos project naming, modular paths, correct library version configurations (including Room 3.0-alpha05, KSP 2.3.9, and AGP 8.10.1), and corrected Gradle properties.",
-  "updatedAt": "2026-06-10T13:45:37.723299Z",
-  "userFacing": true
-}

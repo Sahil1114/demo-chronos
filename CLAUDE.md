@@ -12,9 +12,9 @@ Chronos is a Kotlin Multiplatform (KMP) persistence-backed background task sched
 ## Documentation & Ground Truth
 All design documents, technical plans, and architecture details are stored under `docs/`:
 - `docs/project_plan.md`: Phases, API design, and schema details.
-- `docs/DEPENDENCIES_AND_BUILD_CONFIG.md`: Version matrix and build configuration.
 - `docs/SYSTEM_DESIGN_HLD_DFD.md`: HLD, Level 0 & 1 DFDs.
-- `docs/HLD_DEEP_DIVES.md`: Subsystem deep-dives (iOS Foreground Runner, KSP, etc.).
+- `docs/HLD_DEEP_DIVES.md`: Subsystem deep-dives (iOS BGTaskScheduler, WorkChain DAG, etc.).
+- `docs/LLD.md`: Low-Level Design (class contracts, Room 3 schemas, execution algorithms).
 - `docs/VISION_AND_EXECUTION.md`: Product vision and Spike details.
 
 ## Build & Validation Commands

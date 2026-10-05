@@ -29,7 +29,11 @@ class WorkerProcessor(
             writer.write("import io.github.sahilmakkar.chronos.worker.WorkerRegistry\n\n")
             writer.write("fun WorkerRegistry.registerGeneratedWorkers() {\n")
             for (worker in workers) {
-                val qualifiedName = worker.qualifiedName?.asString() ?: continue
+                val qualifiedName = worker.qualifiedName?.asString()
+                if (qualifiedName == null) {
+                    logger.warn("Skipping @RegisterWorker class with no qualified name", worker)
+                    continue
+                }
                 val annotation = worker.annotations.firstOrNull {
                     it.shortName.asString() == "RegisterWorker"
                 }
@@ -45,6 +49,7 @@ class WorkerProcessor(
                 }
 
                 if (hasCustomFactory) {
+                    logger.info("$qualifiedName uses a custom factory, register manually")
                     writer.write("    // $qualifiedName uses a custom factory, register manually\n")
                 } else {
                     writer.write("    register(\"$qualifiedName\") { $qualifiedName(it) }\n")
@@ -52,6 +57,8 @@ class WorkerProcessor(
             }
             writer.write("}\n")
         }
+
+        logger.info("Generated registrations for ${workers.size} worker(s) -> GeneratedWorkers.kt")
 
         return emptyList()
     }

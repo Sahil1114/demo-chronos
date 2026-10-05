@@ -1,5 +1,7 @@
 package io.github.sahilmakkar.chronos.sample
 
+import io.github.sahilmakkar.chronos.RegisterWorker
+import io.github.sahilmakkar.chronos.registerGeneratedWorkers
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.workDataOf
@@ -8,6 +10,7 @@ import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
+@RegisterWorker
 class SampleSuccessWorker(inputData: TaskData) : Worker(inputData) {
     override suspend fun doWork(): TaskResult {
         setProgress(workDataOf("status" to "Working: step 1/2"))
@@ -18,6 +21,7 @@ class SampleSuccessWorker(inputData: TaskData) : Worker(inputData) {
     }
 }
 
+@RegisterWorker
 class SampleFailureWorker(inputData: TaskData) : Worker(inputData) {
     override suspend fun doWork(): TaskResult {
         setProgress(workDataOf("status" to "Processing..."))
@@ -26,6 +30,7 @@ class SampleFailureWorker(inputData: TaskData) : Worker(inputData) {
     }
 }
 
+@RegisterWorker
 class SampleRetryWorker(inputData: TaskData) : Worker(inputData) {
     override suspend fun doWork(): TaskResult {
         setProgress(workDataOf("status" to "Attempting run..."))
@@ -36,20 +41,6 @@ class SampleRetryWorker(inputData: TaskData) : Worker(inputData) {
 
 fun createSampleRegistry(): WorkerRegistry {
     return WorkerRegistry().apply {
-        register(className = "io.github.sahilmakkar.chronos.sample.SampleSuccessWorker") {
-            SampleSuccessWorker(
-                inputData = it
-            )
-        }
-        register(className = "io.github.sahilmakkar.chronos.sample.SampleFailureWorker") {
-            SampleFailureWorker(
-                inputData = it
-            )
-        }
-        register(className = "io.github.sahilmakkar.chronos.sample.SampleRetryWorker") {
-            SampleRetryWorker(
-                inputData = it
-            )
-        }
+        registerGeneratedWorkers()
     }
 }

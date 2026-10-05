@@ -1,0 +1,312 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "2da16a5517b9dad6bf2d6aee84c97810",
+    "entities": [
+      {
+        "tableName": "work_requests",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workerClassName` TEXT NOT NULL, `state` TEXT NOT NULL, `uniqueWorkName` TEXT, `maxRetries` INTEGER NOT NULL, `runAttemptCount` INTEGER NOT NULL, `timeoutMs` INTEGER, `scheduledAt` INTEGER NOT NULL, `chainId` TEXT, `chainOrder` INTEGER NOT NULL, `inputDataJson` TEXT NOT NULL, `outputDataJson` TEXT NOT NULL, `progressDataJson` TEXT NOT NULL, `backoffPolicy` TEXT NOT NULL, `backoffDelayMs` INTEGER NOT NULL, `networkType` TEXT NOT NULL, `requiresCharging` INTEGER NOT NULL, `requiresBatteryNotLow` INTEGER NOT NULL, `requiresStorageNotLow` INTEGER NOT NULL, `requiresDeviceIdle` INTEGER NOT NULL, `windowStartHour` INTEGER, `windowEndHour` INTEGER, `windowTimeZone` TEXT, `repeatIntervalMs` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workerClassName",
+            "columnName": "workerClassName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uniqueWorkName",
+            "columnName": "uniqueWorkName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "maxRetries",
+            "columnName": "maxRetries",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "runAttemptCount",
+            "columnName": "runAttemptCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeoutMs",
+            "columnName": "timeoutMs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "scheduledAt",
+            "columnName": "scheduledAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chainId",
+            "columnName": "chainId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "chainOrder",
+            "columnName": "chainOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inputDataJson",
+            "columnName": "inputDataJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outputDataJson",
+            "columnName": "outputDataJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "progressDataJson",
+            "columnName": "progressDataJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "backoffPolicy",
+            "columnName": "backoffPolicy",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "backoffDelayMs",
+            "columnName": "backoffDelayMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "networkType",
+            "columnName": "networkType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "requiresCharging",
+            "columnName": "requiresCharging",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "requiresBatteryNotLow",
+            "columnName": "requiresBatteryNotLow",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "requiresStorageNotLow",
+            "columnName": "requiresStorageNotLow",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "requiresDeviceIdle",
+            "columnName": "requiresDeviceIdle",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windowStartHour",
+            "columnName": "windowStartHour",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "windowEndHour",
+            "columnName": "windowEndHour",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "windowTimeZone",
+            "columnName": "windowTimeZone",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "repeatIntervalMs",
+            "columnName": "repeatIntervalMs",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_work_requests_uniqueWorkName",
+            "unique": false,
+            "columnNames": [
+              "uniqueWorkName"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_requests_uniqueWorkName` ON `${TABLE_NAME}` (`uniqueWorkName`)"
+          }
+        ]
+      },
+      {
+        "tableName": "work_tags",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workRequestId` TEXT NOT NULL, `tag` TEXT NOT NULL, PRIMARY KEY(`workRequestId`, `tag`), FOREIGN KEY(`workRequestId`) REFERENCES `work_requests`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "workRequestId",
+            "columnName": "workRequestId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tag",
+            "columnName": "tag",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workRequestId",
+            "tag"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_work_tags_tag",
+            "unique": false,
+            "columnNames": [
+              "tag"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_tags_tag` ON `${TABLE_NAME}` (`tag`)"
+          },
+          {
+            "name": "index_work_tags_workRequestId",
+            "unique": false,
+            "columnNames": [
+              "workRequestId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_tags_workRequestId` ON `${TABLE_NAME}` (`workRequestId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "work_requests",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "workRequestId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "work_dependencies",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`parentWorkId` TEXT NOT NULL, `childWorkId` TEXT NOT NULL, `chainFailurePolicy` TEXT NOT NULL, `parentOutputMergeStrategy` TEXT NOT NULL, PRIMARY KEY(`parentWorkId`, `childWorkId`), FOREIGN KEY(`parentWorkId`) REFERENCES `work_requests`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`childWorkId`) REFERENCES `work_requests`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "parentWorkId",
+            "columnName": "parentWorkId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "childWorkId",
+            "columnName": "childWorkId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chainFailurePolicy",
+            "columnName": "chainFailurePolicy",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentOutputMergeStrategy",
+            "columnName": "parentOutputMergeStrategy",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "parentWorkId",
+            "childWorkId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_work_dependencies_parentWorkId",
+            "unique": false,
+            "columnNames": [
+              "parentWorkId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_dependencies_parentWorkId` ON `${TABLE_NAME}` (`parentWorkId`)"
+          },
+          {
+            "name": "index_work_dependencies_childWorkId",
+            "unique": false,
+            "columnNames": [
+              "childWorkId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_dependencies_childWorkId` ON `${TABLE_NAME}` (`childWorkId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "work_requests",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "parentWorkId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "work_requests",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "childWorkId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2da16a5517b9dad6bf2d6aee84c97810')"
+    ]
+  }
+}

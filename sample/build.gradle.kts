@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.kotlinPluginCompose)
 }
@@ -34,6 +35,23 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.core)
         }
+    }
+
+    // Make generated common code visible to every compilation
+    sourceSets.commonMain {
+        kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+    }
+}
+
+dependencies {
+    // Worker processor runs once, on common code only
+    add("kspCommonMainMetadata", project(":chronos-processor"))
+}
+
+// Every compilation and KSP task must wait for common KSP run to finish
+tasks.configureEach {
+    if (name != "kspCommonMainKotlinMetadata" && (name.startsWith("ksp") || name.startsWith("compile"))) {
+        dependsOn("kspCommonMainKotlinMetadata")
     }
 }
 

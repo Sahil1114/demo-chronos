@@ -22,7 +22,7 @@ import kotlin.time.Duration
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App(chronos: Chronos) {
-    val tasks by chronos.getWorkInfosByTagFlow("sample-task")
+    val tasks by chronos.observeTasksByTag("sample-task")
         .collectAsState(initial = emptyList())
 
     MaterialTheme(
@@ -139,7 +139,7 @@ fun App(chronos: Chronos) {
                     }
                     Button(
                         onClick = {
-                            chronos.cancelAllWork()
+                            chronos.cancelAllTasks()
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE57373))

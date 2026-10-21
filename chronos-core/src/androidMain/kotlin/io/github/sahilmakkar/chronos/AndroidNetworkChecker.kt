@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import io.github.sahilmakkar.chronos.network.NetworkChecker
+import io.github.sahilmakkar.chronos.port.NetworkChecker
 
 @SuppressLint("MissingPermission")
 class AndroidNetworkChecker(private val context: Context) : NetworkChecker {

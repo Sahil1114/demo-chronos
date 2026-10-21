@@ -5,27 +5,28 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import io.github.sahilmakkar.chronos.AndroidDelegatingWorker
-import io.github.sahilmakkar.chronos.task.model.fromJson
-import io.github.sahilmakkar.chronos.task.model.toJson
-import io.github.sahilmakkar.chronos.roomDb.WorkDatabase
-import io.github.sahilmakkar.chronos.roomDb.WorkRequestEntity
-import io.github.sahilmakkar.chronos.mapper.WorkConstraintsMapper.toWorkManagerConstraints
+import io.github.sahilmakkar.chronos.mapper.WorkManagerConstraintsMapper.toWorkManagerConstraints
+import io.github.sahilmakkar.chronos.port.TaskExecutor
+import io.github.sahilmakkar.chronos.storage.ChronosDatabase
+import io.github.sahilmakkar.chronos.storage.TaskEntity
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.model.TaskData
-import io.github.sahilmakkar.chronos.task.model.workDataOf
+import io.github.sahilmakkar.chronos.task.model.fromJson
+import io.github.sahilmakkar.chronos.task.model.taskDataOf
+import io.github.sahilmakkar.chronos.task.model.toJson
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 import java.util.UUID
 
 class AndroidTaskExecutor(
     private val workManager: WorkManager,
-    private val db: WorkDatabase
+    private val db: ChronosDatabase
 ) : TaskExecutor {
 
-    override suspend fun execute(entity: WorkRequestEntity, inputData: TaskData): TaskResult {
-        db.workDao().updateWorkState(id = entity.id, state = TaskState.RUNNING)
-        db.workDao().updateRunAttemptCount(id = entity.id, count = entity.runAttemptCount + 1)
+    override suspend fun execute(entity: TaskEntity, inputData: TaskData): TaskResult {
+        db.taskDao().updateTaskState(id = entity.id, state = TaskState.RUNNING)
+        db.taskDao().updateRunAttemptCount(id = entity.id, count = entity.runAttemptCount + 1)
 
         val workId = UUID.fromString(entity.id)
         val request = OneTimeWorkRequestBuilder<AndroidDelegatingWorker>()
@@ -38,7 +39,7 @@ class AndroidTaskExecutor(
             )
             .setConstraints(entity.toWorkManagerConstraints())
             // No setBackoffCriteria — WorkManager must never auto-retry.
-            // Retry/backoff timing is fully owned by WorkChainCoordinator.
+            // Retry/backoff timing is fully owned by TaskCoordinator.
             .build()
 
         return try {
@@ -49,7 +50,7 @@ class AndroidTaskExecutor(
                 .first()
         } catch (e: Exception) {
             TaskResult.Failure(
-                outputData = workDataOf("error" to (e.message ?: "WorkManager dispatch failed"))
+                outputData = taskDataOf("error" to (e.message ?: "WorkManager dispatch failed"))
             )
         }
     }
@@ -74,7 +75,7 @@ class AndroidTaskExecutor(
         }
 
         WorkInfo.State.CANCELLED -> TaskResult.Failure(
-            outputData = workDataOf("error" to "Task was cancelled by WorkManager")
+            outputData = taskDataOf("error" to "Task was cancelled by WorkManager")
         )
 
         else -> null // ENQUEUED, RUNNING, BLOCKED — keep observing

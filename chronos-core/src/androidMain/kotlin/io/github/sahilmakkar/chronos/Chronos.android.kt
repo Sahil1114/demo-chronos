@@ -1,16 +1,20 @@
 package io.github.sahilmakkar.chronos
 
 import androidx.work.WorkManager
-import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
+import io.github.sahilmakkar.chronos.constraints.AndroidConstraintVerifier
+import io.github.sahilmakkar.chronos.engine.ChronosEngine
+import io.github.sahilmakkar.chronos.engine.Daemon
+import io.github.sahilmakkar.chronos.engine.TaskCoordinator
 import io.github.sahilmakkar.chronos.executor.AndroidTaskExecutor
-import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase
-import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator
-import io.github.sahilmakkar.chronos.scheduler.canceller.ChronosWorkCanceller
-import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.ChronosWorkEnqueuer
+import io.github.sahilmakkar.chronos.scheduler.ChronosTaskCanceller
+import io.github.sahilmakkar.chronos.scheduler.ChronosTaskEnqueuer
+import io.github.sahilmakkar.chronos.storage.RoomTaskStore
+import io.github.sahilmakkar.chronos.storage.createRoomDatabase
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import java.util.UUID
 
 actual fun Chronos.Companion.initialize(
     support: PlatformSupport,
@@ -31,22 +35,30 @@ internal fun buildAndroidChronos(
     val workManager = WorkManager.getInstance(context = appContext)
 
     val taskExecutor = AndroidTaskExecutor(workManager = workManager, db = db)
-    val coordinator = WorkChainCoordinator(
+    val coordinator = TaskCoordinator(
         db = db,
         taskExecutor = taskExecutor,
-        constraintProvider = WorkConstraintVerifier()
+        constraintProvider = AndroidConstraintVerifier()
     )
     val daemon = Daemon(coroutineScope = coroutineScope, coordinator = coordinator)
-    val enqueuer = ChronosWorkEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
-    val canceller = ChronosWorkCanceller(workManager = workManager, db = db, coroutineScope = coroutineScope)
+    val enqueuer = ChronosTaskEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
+    val canceller = ChronosTaskCanceller(
+        db = db,
+        coroutineScope = coroutineScope,
+        onCancelById = { workManager.cancelWorkById(UUID.fromString(it)) },
+        onCancelByTag = { workManager.cancelAllWorkByTag(it) },
+        onCancelAll = { workManager.cancelAllWork() }
+    )
+    val taskStore = RoomTaskStore(db.taskDao())
 
     return ChronosEngine(
         registry = registry,
         coroutineScope = coroutineScope,
-        db = db,
         coordinator = coordinator,
         daemon = daemon,
         enqueuer = enqueuer,
-        canceller = canceller
+        canceller = canceller,
+        taskStore = taskStore,
+        db = db
     )
 }

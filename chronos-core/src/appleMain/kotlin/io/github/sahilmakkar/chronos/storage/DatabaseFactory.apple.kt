@@ -1,5 +1,4 @@
-package io.github.sahilmakkar.chronos.roomDb
-
+package io.github.sahilmakkar.chronos.storage
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
@@ -12,7 +11,7 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
 @OptIn(ExperimentalForeignApi::class)
-actual fun createRoomDatabase(support: PlatformSupport): WorkDatabase {
+actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabase {
     val documentDirectory = NSFileManager.defaultManager.URLForDirectory(
         directory = NSDocumentDirectory,
         inDomain = NSUserDomainMask,
@@ -22,7 +21,7 @@ actual fun createRoomDatabase(support: PlatformSupport): WorkDatabase {
     )
     val path = documentDirectory?.path ?: ""
     val dbFile = "$path/chronos_work.db"
-    return Room.databaseBuilder<WorkDatabase>(
+    return Room.databaseBuilder<ChronosDatabase>(
         name = dbFile
     ).setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)

@@ -1,6 +1,6 @@
 package io.github.sahilmakkar.chronos
 
-import io.github.sahilmakkar.chronos.network.NetworkChecker
+import io.github.sahilmakkar.chronos.port.NetworkChecker
 import platform.Network.*
 import platform.darwin.dispatch_get_main_queue
 

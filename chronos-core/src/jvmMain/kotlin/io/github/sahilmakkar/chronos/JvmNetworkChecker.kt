@@ -1,6 +1,6 @@
 package io.github.sahilmakkar.chronos
 
-import io.github.sahilmakkar.chronos.network.NetworkChecker
+import io.github.sahilmakkar.chronos.port.NetworkChecker
 import java.net.NetworkInterface
 
 class JvmNetworkChecker : NetworkChecker {

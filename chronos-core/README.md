@@ -79,36 +79,33 @@ Chronos.initialize(PlatformSupport, registry)
 
 ### 2. Implementing a Worker
 
-Extend `Worker` and implement the `suspend fun doWork()` function:
+Extend `TaskWorker` and implement the `suspend fun doWork()` function:
 
 ```kotlin
-import io.github.sahilmakkar.chronos.worker.Worker
+import io.github.sahilmakkar.chronos.worker.TaskWorker
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.model.TaskData
-import io.github.sahilmakkar.chronos.task.model.workDataOf
+import io.github.sahilmakkar.chronos.task.model.taskDataOf
 
-class SyncWorker(inputData: TaskData) : Worker(inputData) {
+class SyncWorker(inputData: TaskData) : TaskWorker(inputData) {
 
     override suspend fun doWork(): TaskResult {
         val syncType = inputData.getString("sync_type") ?: "incremental"
 
         // Report live progress to observers
-        setProgress(workDataOf("percent" to 25))
+        setProgress(taskDataOf("percent" to 25))
 
         return try {
             // Perform background work...
-            setProgress(workDataOf("percent" to 100))
+            setProgress(taskDataOf("percent" to 100))
 
             TaskResult.Success(
-                outputData = workDataOf("synced_items" to 42)
+                outputData = taskDataOf("synced_items" to 42)
             )
-        } catch (e: TransientNetworkException) {
-            // Trigger retry with backoff
-            TaskResult.Retry
         } catch (e: Exception) {
-            // Mark permanent failure
+            // Mark permanent failure or return TaskResult.Retry
             TaskResult.Failure(
-                outputData = workDataOf("error" to (e.message ?: "Unknown error"))
+                outputData = taskDataOf("error" to (e.message ?: "Unknown error"))
             )
         }
     }
@@ -125,14 +122,14 @@ import io.github.sahilmakkar.chronos.Chronos
 import io.github.sahilmakkar.chronos.instance
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequestBuilder
 import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
-import io.github.sahilmakkar.chronos.network.NetworkType
+import io.github.sahilmakkar.chronos.task.constraints.NetworkType
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
-import io.github.sahilmakkar.chronos.task.model.workDataOf
+import io.github.sahilmakkar.chronos.task.model.taskDataOf
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Duration.Companion.minutes
 
 val request = OneTimeTaskRequestBuilder<SyncWorker>()
-    .setInputData(workDataOf("sync_type" to "full"))
+    .setInputData(taskDataOf("sync_type" to "full"))
     .setInitialDelay(10.seconds)
     .setTimeout(5.minutes)
     .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15.seconds)
@@ -154,7 +151,7 @@ Avoid redundant duplicate tasks using unique work policies:
 ```kotlin
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 
-Chronos.instance.enqueueUniqueWork(
+Chronos.instance.enqueueUniqueTask(
     name = "nightly_data_sync",
     policy = UniqueTaskPolicy.KEEP, // Options: KEEP, REPLACE, APPEND
     request = request
@@ -167,10 +164,10 @@ import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequestBuilder
 import kotlin.time.Duration.Companion.hours
 
 val periodicRequest = PeriodicTaskRequestBuilder<SyncWorker>(repeatInterval = 1.hours)
-    .setInputData(workDataOf("sync_type" to "hourly"))
+    .setInputData(taskDataOf("sync_type" to "hourly"))
     .build()
 
-Chronos.instance.enqueueUniquePeriodicWork(
+Chronos.instance.enqueueUniquePeriodicTask(
     name = "hourly_sync",
     policy = UniqueTaskPolicy.REPLACE,
     request = periodicRequest
@@ -202,7 +199,7 @@ Observe task progress and terminal states reactively using Kotlin Coroutines `Fl
 
 ```kotlin
 coroutineScope.launch {
-    Chronos.instance.getWorkInfoFlow(request.id).collect { info ->
+    Chronos.instance.observeTask(request.id).collect { info ->
         when (info?.state) {
             TaskState.ENQUEUED -> println("Waiting for constraints...")
             TaskState.RUNNING  -> {
@@ -221,7 +218,7 @@ coroutineScope.launch {
 
 Observe all tasks matching a specific tag:
 ```kotlin
-Chronos.instance.getWorkInfosByTagFlow("sync_jobs").collect { tasks ->
+Chronos.instance.observeTasksByTag("sync_jobs").collect { tasks ->
     println("Active sync jobs: ${tasks.size}")
 }
 ```
@@ -232,13 +229,13 @@ Chronos.instance.getWorkInfosByTagFlow("sync_jobs").collect { tasks ->
 
 ```kotlin
 // Cancel by ID
-Chronos.instance.cancelWorkById(request.id)
+Chronos.instance.cancelTaskById(request.id)
 
 // Cancel all tasks matching a tag
-Chronos.instance.cancelWorkByTag("sync_jobs")
+Chronos.instance.cancelTaskByTag("sync_jobs")
 
 // Cancel all scheduled and active work
-Chronos.instance.cancelAllWork()
+Chronos.instance.cancelAllTasks()
 ```
 
 ---

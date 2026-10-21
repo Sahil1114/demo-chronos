@@ -6,7 +6,7 @@ import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
-import io.github.sahilmakkar.chronos.task.model.workDataOf
+import io.github.sahilmakkar.chronos.task.model.taskDataOf
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
@@ -20,19 +20,18 @@ class TestChronos(
     override val registry: WorkerRegistry = WorkerRegistry(),
 ) : Chronos {
     val enqueuedRequests = mutableListOf<TaskRequest>()
-    private val workInfos = MutableStateFlow<Map<String, TaskInfo>>(emptyMap())
-
+    private val taskInfos = MutableStateFlow<Map<String, TaskInfo>>(emptyMap())
 
     override fun enqueue(request: TaskRequest) {
         enqueuedRequests.add(request)
-        updateWorkInfo(request.id, TaskState.ENQUEUED)
+        updateTaskInfo(request.id, TaskState.ENQUEUED)
     }
 
-    override fun enqueueUniqueWork(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
+    override fun enqueueUniqueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
         enqueue(request = request)
     }
 
-    override fun enqueueUniquePeriodicWork(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {
+    override fun enqueueUniquePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {
         enqueue(request = request)
     }
 
@@ -40,49 +39,49 @@ class TestChronos(
         chain.requests.forEach { enqueue(request = it) }
     }
 
-    override fun cancelWorkById(id: String) {
-        updateWorkInfo(id = id, state = TaskState.CANCELLED)
+    override fun cancelTaskById(id: String) {
+        updateTaskInfo(id = id, state = TaskState.CANCELLED)
     }
 
-    override fun cancelWorkByTag(tag: String) {
+    override fun cancelTaskByTag(tag: String) {
         // Tag cancellation not fully fleshed in stub
     }
 
-    override fun cancelAllWork() {
-        workInfos.value.keys.forEach { cancelWorkById(id = it) }
+    override fun cancelAllTasks() {
+        taskInfos.value.keys.forEach { cancelTaskById(id = it) }
     }
 
-    override fun getWorkInfoFlow(id: String): Flow<TaskInfo?> {
-        return workInfos.map { it[id] }
+    override fun observeTask(id: String): Flow<TaskInfo?> {
+        return taskInfos.map { it[id] }
     }
 
-    override fun getWorkInfosByTagFlow(tag: String): Flow<List<TaskInfo>> {
-        return workInfos.map { it.values.toList() }
+    override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> {
+        return taskInfos.map { it.values.toList() }
     }
 
     override suspend fun runPendingTasksNow() {
         val iterator = enqueuedRequests.iterator()
         while (iterator.hasNext()) {
             val req = iterator.next()
-            updateWorkInfo(req.id, TaskState.RUNNING)
+            updateTaskInfo(req.id, TaskState.RUNNING)
             try {
                 val worker = registry.createWorker(req.workerClassName, req.taskData)
                 val res = worker.doWork()
                 when (res) {
-                    is TaskResult.Success -> updateWorkInfo(
+                    is TaskResult.Success -> updateTaskInfo(
                         id = req.id,
                         state = TaskState.SUCCEEDED,
                         output = res.outputData
                     )
-                    is TaskResult.Failure -> updateWorkInfo(
+                    is TaskResult.Failure -> updateTaskInfo(
                         id = req.id,
                         state = TaskState.FAILED,
                         output = res.outputData
                     )
-                    TaskResult.Retry -> updateWorkInfo(id = req.id, state = TaskState.RETRYING)
+                    TaskResult.Retry -> updateTaskInfo(id = req.id, state = TaskState.RETRYING)
                 }
             } catch (e: Exception) {
-                updateWorkInfo(id = req.id, state = TaskState.FAILED)
+                updateTaskInfo(id = req.id, state = TaskState.FAILED)
             }
             iterator.remove()
         }
@@ -90,19 +89,19 @@ class TestChronos(
 
     override fun close() {
         enqueuedRequests.clear()
-        workInfos.value = emptyMap()
+        taskInfos.value = emptyMap()
     }
 
-    private fun updateWorkInfo(id: String, state: TaskState, output: TaskData = workDataOf()) {
-        val current = workInfos.value[id]
+    private fun updateTaskInfo(id: String, state: TaskState, output: TaskData = taskDataOf()) {
+        val current = taskInfos.value[id]
         val attempt = (current?.runAttemptCount ?: 0) + (if (state == TaskState.RUNNING) 1 else 0)
         val newInfo = TaskInfo(
             id = id,
             state = state,
             outputData = output,
-            progress = current?.progress ?: workDataOf(),
+            progress = current?.progress ?: taskDataOf(),
             runAttemptCount = attempt
         )
-        workInfos.value = workInfos.value + (id to newInfo)
+        taskInfos.value += (id to newInfo)
     }
 }

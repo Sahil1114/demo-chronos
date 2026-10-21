@@ -1,20 +1,19 @@
 package io.github.sahilmakkar.chronos.mapper
 
-
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkRequest
 import io.github.sahilmakkar.chronos.AndroidDelegatingWorker
-import io.github.sahilmakkar.chronos.mapper.WorkConstraintsMapper.toConstraints
+import io.github.sahilmakkar.chronos.mapper.WorkManagerConstraintsMapper.toConstraints
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-internal object WorkRequestMapper {
+internal object WorkManagerRequestMapper {
 
     fun toWorkRequest(request: TaskRequest): WorkRequest = when (request) {
         is OneTimeTaskRequest -> toOneTimeWorkRequest(request)
@@ -41,7 +40,7 @@ internal object WorkRequestMapper {
     ): B {
         val workRequest: B = (this as B)
             .setId(UUID.fromString(request.id))
-            .setInputData(WorkDataMapper.toData(request.taskData, request.workerClassName))
+            .setInputData(WorkManagerDataMapper.toData(request.taskData, request.workerClassName))
             .setConstraints(request.constraints.toConstraints())
             .setInitialDelay(request.initialDelay.inWholeMilliseconds, TimeUnit.MILLISECONDS)
             .setBackoffCriteria(
@@ -53,3 +52,6 @@ internal object WorkRequestMapper {
         return workRequest
     }
 }
+
+@Deprecated("Use WorkManagerRequestMapper instead", ReplaceWith("WorkManagerRequestMapper"))
+internal typealias WorkRequestMapper = WorkManagerRequestMapper

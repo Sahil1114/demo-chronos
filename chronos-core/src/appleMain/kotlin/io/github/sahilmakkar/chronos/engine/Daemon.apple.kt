@@ -1,20 +1,18 @@
-package io.github.sahilmakkar.chronos
-
+package io.github.sahilmakkar.chronos.engine
 
 import io.github.sahilmakkar.chronos.executor.IosBackgroundTaskScheduler
-import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-actual class Daemon actual constructor(
+internal actual class Daemon actual constructor(
     private val coroutineScope: CoroutineScope,
-    private val coordinator: WorkChainCoordinator
+    private val coordinator: TaskCoordinator
 ) {
     private lateinit var scheduler: IosBackgroundTaskScheduler
 
     constructor(
         coroutineScope: CoroutineScope,
-        coordinator: WorkChainCoordinator,
+        coordinator: TaskCoordinator,
         scheduler: IosBackgroundTaskScheduler
     ) : this(coroutineScope, coordinator) {
         this.scheduler = scheduler

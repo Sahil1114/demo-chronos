@@ -1,5 +1,6 @@
-package io.github.sahilmakkar.chronos
-import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator
+package io.github.sahilmakkar.chronos.engine
+
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -8,9 +9,9 @@ import kotlinx.coroutines.launch
 
 private const val POLL_INTERVAL_MS = 1000L
 
-actual class Daemon actual constructor(
+internal actual class Daemon actual constructor(
     private val coroutineScope: CoroutineScope,
-    private val coordinator: WorkChainCoordinator
+    private val coordinator: TaskCoordinator
 ) {
     private var loopJob: Job? = null
 
@@ -27,8 +28,7 @@ actual class Daemon actual constructor(
             try {
                 coordinator.runPendingTasks()
             } catch (e: Exception) {
-                // TODO: route through whatever logging framework the JVM target uses
-                e.printStackTrace()
+                Log.e("ChronosDaemon", "poll failed", e)
             }
             delay(POLL_INTERVAL_MS)
         }

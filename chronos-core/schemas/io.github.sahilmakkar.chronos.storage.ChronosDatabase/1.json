@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "2da16a5517b9dad6bf2d6aee84c97810",
+    "identityHash": "fec2564448a67e39042a5b8d0d82b3bf",
     "entities": [
       {
-        "tableName": "work_requests",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workerClassName` TEXT NOT NULL, `state` TEXT NOT NULL, `uniqueWorkName` TEXT, `maxRetries` INTEGER NOT NULL, `runAttemptCount` INTEGER NOT NULL, `timeoutMs` INTEGER, `scheduledAt` INTEGER NOT NULL, `chainId` TEXT, `chainOrder` INTEGER NOT NULL, `inputDataJson` TEXT NOT NULL, `outputDataJson` TEXT NOT NULL, `progressDataJson` TEXT NOT NULL, `backoffPolicy` TEXT NOT NULL, `backoffDelayMs` INTEGER NOT NULL, `networkType` TEXT NOT NULL, `requiresCharging` INTEGER NOT NULL, `requiresBatteryNotLow` INTEGER NOT NULL, `requiresStorageNotLow` INTEGER NOT NULL, `requiresDeviceIdle` INTEGER NOT NULL, `windowStartHour` INTEGER, `windowEndHour` INTEGER, `windowTimeZone` TEXT, `repeatIntervalMs` INTEGER, PRIMARY KEY(`id`))",
+        "tableName": "tasks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workerClassName` TEXT NOT NULL, `state` TEXT NOT NULL, `uniqueTaskName` TEXT, `maxRetries` INTEGER NOT NULL, `runAttemptCount` INTEGER NOT NULL, `timeoutMs` INTEGER, `scheduledAt` INTEGER NOT NULL, `chainId` TEXT, `chainOrder` INTEGER NOT NULL, `inputDataJson` TEXT NOT NULL, `outputDataJson` TEXT NOT NULL, `progressDataJson` TEXT NOT NULL, `backoffPolicy` TEXT NOT NULL, `backoffDelayMs` INTEGER NOT NULL, `networkType` TEXT NOT NULL, `requiresCharging` INTEGER NOT NULL, `requiresBatteryNotLow` INTEGER NOT NULL, `requiresStorageNotLow` INTEGER NOT NULL, `requiresDeviceIdle` INTEGER NOT NULL, `windowStartHour` INTEGER, `windowEndHour` INTEGER, `windowTimeZone` TEXT, `repeatIntervalMs` INTEGER, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -27,8 +27,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "uniqueWorkName",
-            "columnName": "uniqueWorkName",
+            "fieldPath": "uniqueTaskName",
+            "columnName": "uniqueTaskName",
             "affinity": "TEXT"
           },
           {
@@ -154,23 +154,23 @@
         },
         "indices": [
           {
-            "name": "index_work_requests_uniqueWorkName",
+            "name": "index_tasks_uniqueTaskName",
             "unique": false,
             "columnNames": [
-              "uniqueWorkName"
+              "uniqueTaskName"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_requests_uniqueWorkName` ON `${TABLE_NAME}` (`uniqueWorkName`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_uniqueTaskName` ON `${TABLE_NAME}` (`uniqueTaskName`)"
           }
         ]
       },
       {
-        "tableName": "work_tags",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workRequestId` TEXT NOT NULL, `tag` TEXT NOT NULL, PRIMARY KEY(`workRequestId`, `tag`), FOREIGN KEY(`workRequestId`) REFERENCES `work_requests`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "tableName": "task_tags",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`taskId` TEXT NOT NULL, `tag` TEXT NOT NULL, PRIMARY KEY(`taskId`, `tag`), FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
-            "fieldPath": "workRequestId",
-            "columnName": "workRequestId",
+            "fieldPath": "taskId",
+            "columnName": "taskId",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -184,37 +184,37 @@
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "workRequestId",
+            "taskId",
             "tag"
           ]
         },
         "indices": [
           {
-            "name": "index_work_tags_tag",
+            "name": "index_task_tags_tag",
             "unique": false,
             "columnNames": [
               "tag"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_tags_tag` ON `${TABLE_NAME}` (`tag`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_task_tags_tag` ON `${TABLE_NAME}` (`tag`)"
           },
           {
-            "name": "index_work_tags_workRequestId",
+            "name": "index_task_tags_taskId",
             "unique": false,
             "columnNames": [
-              "workRequestId"
+              "taskId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_tags_workRequestId` ON `${TABLE_NAME}` (`workRequestId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_task_tags_taskId` ON `${TABLE_NAME}` (`taskId`)"
           }
         ],
         "foreignKeys": [
           {
-            "table": "work_requests",
+            "table": "tasks",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "workRequestId"
+              "taskId"
             ],
             "referencedColumns": [
               "id"
@@ -223,18 +223,18 @@
         ]
       },
       {
-        "tableName": "work_dependencies",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`parentWorkId` TEXT NOT NULL, `childWorkId` TEXT NOT NULL, `chainFailurePolicy` TEXT NOT NULL, `parentOutputMergeStrategy` TEXT NOT NULL, PRIMARY KEY(`parentWorkId`, `childWorkId`), FOREIGN KEY(`parentWorkId`) REFERENCES `work_requests`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`childWorkId`) REFERENCES `work_requests`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "tableName": "task_dependencies",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`parentTaskId` TEXT NOT NULL, `childTaskId` TEXT NOT NULL, `chainFailurePolicy` TEXT NOT NULL, PRIMARY KEY(`parentTaskId`, `childTaskId`), FOREIGN KEY(`parentTaskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`childTaskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
-            "fieldPath": "parentWorkId",
-            "columnName": "parentWorkId",
+            "fieldPath": "parentTaskId",
+            "columnName": "parentTaskId",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "childWorkId",
-            "columnName": "childWorkId",
+            "fieldPath": "childTaskId",
+            "columnName": "childTaskId",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -243,59 +243,53 @@
             "columnName": "chainFailurePolicy",
             "affinity": "TEXT",
             "notNull": true
-          },
-          {
-            "fieldPath": "parentOutputMergeStrategy",
-            "columnName": "parentOutputMergeStrategy",
-            "affinity": "TEXT",
-            "notNull": true
           }
         ],
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "parentWorkId",
-            "childWorkId"
+            "parentTaskId",
+            "childTaskId"
           ]
         },
         "indices": [
           {
-            "name": "index_work_dependencies_parentWorkId",
+            "name": "index_task_dependencies_parentTaskId",
             "unique": false,
             "columnNames": [
-              "parentWorkId"
+              "parentTaskId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_dependencies_parentWorkId` ON `${TABLE_NAME}` (`parentWorkId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_task_dependencies_parentTaskId` ON `${TABLE_NAME}` (`parentTaskId`)"
           },
           {
-            "name": "index_work_dependencies_childWorkId",
+            "name": "index_task_dependencies_childTaskId",
             "unique": false,
             "columnNames": [
-              "childWorkId"
+              "childTaskId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_dependencies_childWorkId` ON `${TABLE_NAME}` (`childWorkId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_task_dependencies_childTaskId` ON `${TABLE_NAME}` (`childTaskId`)"
           }
         ],
         "foreignKeys": [
           {
-            "table": "work_requests",
+            "table": "tasks",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "parentWorkId"
+              "parentTaskId"
             ],
             "referencedColumns": [
               "id"
             ]
           },
           {
-            "table": "work_requests",
+            "table": "tasks",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "childWorkId"
+              "childTaskId"
             ],
             "referencedColumns": [
               "id"
@@ -306,7 +300,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2da16a5517b9dad6bf2d6aee84c97810')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fec2564448a67e39042a5b8d0d82b3bf')"
     ]
   }
 }

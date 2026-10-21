@@ -1,14 +1,14 @@
 package io.github.sahilmakkar.chronos.mapper
 
 import androidx.work.WorkInfo
-import io.github.sahilmakkar.chronos.task.model.TaskData
-import io.github.sahilmakkar.chronos.task.model.fromJson
-import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.TaskState
+import io.github.sahilmakkar.chronos.task.model.TaskData
+import io.github.sahilmakkar.chronos.task.model.TaskInfo
+import io.github.sahilmakkar.chronos.task.model.fromJson
 
-internal object WorkInfoMapper {
+internal object WorkManagerInfoMapper {
 
-    fun WorkInfo.toWorkInfo(): TaskInfo {
+    fun WorkInfo.toTaskInfo(): TaskInfo {
         val state = when (this.state) {
             WorkInfo.State.ENQUEUED -> TaskState.ENQUEUED
             WorkInfo.State.RUNNING -> TaskState.RUNNING
@@ -25,4 +25,10 @@ internal object WorkInfoMapper {
             runAttemptCount = this.runAttemptCount
         )
     }
+
+    @Deprecated("Use toTaskInfo instead", ReplaceWith("toTaskInfo()"))
+    fun WorkInfo.toWorkInfo(): TaskInfo = toTaskInfo()
 }
+
+@Deprecated("Use WorkManagerInfoMapper instead", ReplaceWith("WorkManagerInfoMapper"))
+internal typealias WorkInfoMapper = WorkManagerInfoMapper

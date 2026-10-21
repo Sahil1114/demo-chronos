@@ -1,9 +1,9 @@
 package io.github.sahilmakkar.chronos.task.request
 
-import io.github.sahilmakkar.chronos.worker.Worker
+import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
-import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
+import io.github.sahilmakkar.chronos.worker.TaskWorker
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
@@ -22,7 +22,7 @@ class OneTimeTaskRequest internal constructor(
     override val isPeriodic: Boolean = false
     override val repeatInterval: Duration? = null
 
-    class Builder(workerClass: KClass<out Worker>) :
+    class Builder(workerClass: KClass<out TaskWorker>) :
         TaskRequestBuilder<OneTimeTaskRequest, Builder>(workerClass) {
 
         override fun self(): Builder = this

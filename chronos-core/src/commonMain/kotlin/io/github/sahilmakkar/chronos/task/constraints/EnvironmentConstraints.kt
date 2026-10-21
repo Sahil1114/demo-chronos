@@ -1,7 +1,5 @@
 package io.github.sahilmakkar.chronos.task.constraints
 
-import io.github.sahilmakkar.chronos.network.NetworkType
-
 data class EnvironmentConstraints(
     val requiredNetworkType: NetworkType = NetworkType.NOT_REQUIRED,
     val requiresCharging: Boolean = false,

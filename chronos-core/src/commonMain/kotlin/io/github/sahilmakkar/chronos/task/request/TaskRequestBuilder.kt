@@ -1,19 +1,19 @@
 package io.github.sahilmakkar.chronos.task.request
 
-import io.github.sahilmakkar.chronos.worker.Worker
 import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
 import io.github.sahilmakkar.chronos.task.model.TaskData
-import io.github.sahilmakkar.chronos.task.model.workDataOf
+import io.github.sahilmakkar.chronos.task.model.taskDataOf
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
+import io.github.sahilmakkar.chronos.worker.TaskWorker
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.uuid.Uuid
 
 sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T, B>>(
-    private val workerClass: KClass<out Worker>
+    private val workerClass: KClass<out TaskWorker>
 ) {
     protected var id: String = Uuid.random().toHexString()
-    protected var inputData: TaskData = workDataOf()
+    protected var inputData: TaskData = taskDataOf()
     protected var constraints: EnvironmentConstraints = EnvironmentConstraints()
     protected var initialDelay: Duration = Duration.ZERO
     protected var timeout: Duration? = null
@@ -48,7 +48,7 @@ sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T, B>>(
 
     private fun validateCommon() {
         require(id.isNotBlank()) {
-            "Task id must not be blank"
+            "id must not be blank"
         }
         require(maxRetries >= 0) {
             "maxRetries must be >= 0, was $maxRetries"

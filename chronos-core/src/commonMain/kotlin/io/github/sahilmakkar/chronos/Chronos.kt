@@ -1,26 +1,24 @@
 package io.github.sahilmakkar.chronos
 
-import io.github.sahilmakkar.chronos.scheduler.PlatformScheduler
-import io.github.sahilmakkar.chronos.scheduler.WorkObserver
-import io.github.sahilmakkar.chronos.scheduler.canceller.WorkCanceller
-import io.github.sahilmakkar.chronos.scheduler.workEnqueuer.WorkEnqueuer
+import io.github.sahilmakkar.chronos.port.TaskCanceller
+import io.github.sahilmakkar.chronos.port.TaskEnqueuer
+import io.github.sahilmakkar.chronos.port.TaskObserver
 import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 
 interface Chronos :
-    WorkEnqueuer,
-    WorkCanceller,
-    WorkObserver,
-    PlatformScheduler,
-    AutoCloseable
-{
+    TaskEnqueuer,
+    TaskCanceller,
+    TaskObserver,
+    AutoCloseable {
+
+    suspend fun runPendingTasksNow()
 
     val registry: WorkerRegistry
 
     companion object
 }
-
 
 expect fun Chronos.Companion.initialize(support: PlatformSupport, registry: WorkerRegistry): Chronos
 

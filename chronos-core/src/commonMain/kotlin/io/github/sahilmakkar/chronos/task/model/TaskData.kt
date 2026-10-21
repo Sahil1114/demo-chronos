@@ -21,6 +21,9 @@ data class TaskData(val values: Map<String, Any> = emptyMap()) {
 
 }
 
-fun workDataOf(vararg pairs: Pair<String, Any>): TaskData {
+fun taskDataOf(vararg pairs: Pair<String, Any>): TaskData {
     return TaskData(pairs.toMap())
 }
+
+@Deprecated("Use taskDataOf instead", ReplaceWith("taskDataOf(*pairs)"))
+fun workDataOf(vararg pairs: Pair<String, Any>): TaskData = taskDataOf(*pairs)

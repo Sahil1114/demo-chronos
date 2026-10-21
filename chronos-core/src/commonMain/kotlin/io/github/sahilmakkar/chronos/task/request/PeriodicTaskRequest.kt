@@ -3,7 +3,7 @@ package io.github.sahilmakkar.chronos.task.request
 import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
-import io.github.sahilmakkar.chronos.worker.Worker
+import io.github.sahilmakkar.chronos.worker.TaskWorker
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
@@ -22,8 +22,7 @@ class PeriodicTaskRequest internal constructor(
 ) : TaskRequest() {
     override val isPeriodic: Boolean = true
 
-
-    class Builder(workerClass: KClass<out Worker>, private val repeatInterval: Duration) :
+    class Builder(workerClass: KClass<out TaskWorker>, private val repeatInterval: Duration) :
         TaskRequestBuilder<PeriodicTaskRequest, Builder>(workerClass) {
 
         override fun self(): Builder = this

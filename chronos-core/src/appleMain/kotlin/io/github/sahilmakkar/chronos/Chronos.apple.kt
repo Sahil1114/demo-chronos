@@ -1,6 +1,6 @@
 package io.github.sahilmakkar.chronos
 
-import io.github.sahilmakkar.chronos.db.executor.WorkConstraintVerifier
+import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.db.executor.WorkTaskExecutor
 import io.github.sahilmakkar.chronos.executor.IosBackgroundTaskScheduler
 import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase

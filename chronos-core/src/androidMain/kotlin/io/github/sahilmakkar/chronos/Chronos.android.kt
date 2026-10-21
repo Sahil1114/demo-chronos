@@ -1,7 +1,7 @@
 package io.github.sahilmakkar.chronos
 
 import androidx.work.WorkManager
-import io.github.sahilmakkar.chronos.db.executor.WorkConstraintVerifier
+import io.github.sahilmakkar.chronos.executor.WorkConstraintVerifier
 import io.github.sahilmakkar.chronos.executor.AndroidTaskExecutor
 import io.github.sahilmakkar.chronos.roomDb.createRoomDatabase
 import io.github.sahilmakkar.chronos.roomDb.executor.WorkChainCoordinator

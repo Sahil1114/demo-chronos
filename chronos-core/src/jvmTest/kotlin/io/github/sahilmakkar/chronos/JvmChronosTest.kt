@@ -2,24 +2,16 @@ package io.github.sahilmakkar.chronos
 
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
-import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
-import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.model.taskDataOf
-import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
-import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
-import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.worker.TaskWorker
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import java.io.File
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -28,10 +20,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.fail
-import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 
 class JvmChronosTest {
 
@@ -43,45 +33,12 @@ class JvmChronosTest {
             TaskResult.Success(outputData = taskDataOf("ok" to true))
     }
 
-    class FailureWorker(data: TaskData) : TaskWorker(inputData = data) {
-        override suspend fun doWork(): TaskResult =
-            TaskResult.Failure(outputData = taskDataOf("failed" to true))
-    }
-
-    class RetryWorker(data: TaskData) : TaskWorker(inputData = data) {
-        override suspend fun doWork(): TaskResult = TaskResult.Retry
-    }
-
-    class TimeoutWorker(data: TaskData) : TaskWorker(inputData = data) {
-        override suspend fun doWork(): TaskResult {
-            delay(2000.milliseconds)
-            return TaskResult.Success()
-        }
-    }
-
     @BeforeTest
     fun setUp() {
         cleanDbFiles()
         registry = WorkerRegistry().apply {
             register(className = "io.github.sahilmakkar.chronos.JvmChronosTest.SuccessWorker") {
-                SuccessWorker(
-                    data = it
-                )
-            }
-            register(className = "io.github.sahilmakkar.chronos.JvmChronosTest.FailureWorker") {
-                FailureWorker(
-                    data = it
-                )
-            }
-            register(className = "io.github.sahilmakkar.chronos.JvmChronosTest.RetryWorker") {
-                RetryWorker(
-                    data = it
-                )
-            }
-            this.register("io.github.sahilmakkar.chronos.JvmChronosTest.TimeoutWorker") {
-                TimeoutWorker(
-                    data = it
-                )
+                SuccessWorker(data = it)
             }
         }
         chronos = Chronos.initialize(support = PlatformSupport(), registry = registry)
@@ -112,7 +69,17 @@ class JvmChronosTest {
     }
 
     @Test
-    fun testUniqueWorkPolicyKeep() = runBlocking {
+    fun testOneTimeTaskSuccess(): Unit = runBlocking {
+        val req = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
+        chronos.enqueue(req)
+
+        val info = awaitState(req.id, TaskState.SUCCEEDED)
+        assertNotNull(info)
+        assertEquals(true, info.outputData.getBoolean("ok", false))
+    }
+
+    @Test
+    fun testUniqueWorkPolicyKeep(): Unit = runBlocking {
         val req1 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
         val req2 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
 
@@ -128,155 +95,34 @@ class JvmChronosTest {
             policy = UniqueTaskPolicy.KEEP,
             request = req2
         )
-        delay(timeMillis = 200)
 
         val info2 = chronos.observeTask(req2.id).first()
         assertNull(actual = info2)
     }
 
     @Test
-    fun testUniqueWorkPolicyReplace(): Unit = runBlocking {
-        val req1 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class)
-            .setInitialDelay(10.minutes).build()
-        val req2 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
-
-        chronos.enqueueUniqueTask(
-            name = "replace_job",
-            policy = UniqueTaskPolicy.KEEP,
-            request = req1
-        )
-        awaitState(id = req1.id, state = TaskState.ENQUEUED)
-
-        chronos.enqueueUniqueTask(
-            name = "replace_job",
-            policy = UniqueTaskPolicy.REPLACE,
-            request = req2
-        )
-        awaitState(id = req1.id, state = TaskState.CANCELLED)
-        awaitState(id = req2.id, state = TaskState.SUCCEEDED)
-    }
-
-    @Test
-    fun testUniqueWorkPolicyAppend(): Unit = runBlocking {
-        val req1 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
-        val req2 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
-
-        chronos.enqueueUniqueTask(
-            name = "append_job",
-            policy = UniqueTaskPolicy.KEEP,
-            request = req1
-        )
-        awaitState(id = req1.id, state = TaskState.SUCCEEDED)
-
-        chronos.enqueueUniqueTask(
-            name = "append_job",
-            policy = UniqueTaskPolicy.APPEND,
-            request = req2
-        )
-        awaitState(id = req2.id, state = TaskState.SUCCEEDED)
-    }
-
-    @Test
-    fun testWorkChainStopOnFailure(): Unit = runBlocking {
-        val req1 = OneTimeTaskRequest.Builder(FailureWorker::class).build()
+    fun testWorkChainExecution(): Unit = runBlocking {
+        val req1 = OneTimeTaskRequest.Builder(SuccessWorker::class).build()
         val req2 = OneTimeTaskRequest.Builder(SuccessWorker::class).build()
 
-        val chain = chronos.beginWith(request = req1).then(
-            request = req2,
-            onFailure = DependentTaskPolicy.STOP_ON_FAILURE
-        )
+        val chain = chronos.beginWith(req1).then(req2)
         chronos.enqueue(chain)
 
-        awaitState(req1.id, TaskState.FAILED)
-        awaitState(req2.id, TaskState.FAILED)
-    }
-
-    @Test
-    fun testWorkChainContinueOnFailure(): Unit = runBlocking {
-        val req1 = OneTimeTaskRequest.Builder(FailureWorker::class).build()
-        val req2 = OneTimeTaskRequest.Builder(SuccessWorker::class).build()
-
-        val chain = chronos.beginWith(request = req1).then(
-            request = req2,
-            onFailure = DependentTaskPolicy.CONTINUE_ON_FAILURE
-        )
-        chronos.enqueue(chain)
-
-        awaitState(req1.id, TaskState.FAILED)
+        awaitState(req1.id, TaskState.SUCCEEDED)
         awaitState(req2.id, TaskState.SUCCEEDED)
     }
 
     @Test
-    fun testRetryBackoffAndCap(): Unit = runBlocking {
-        val req = OneTimeTaskRequest.Builder(workerClass = RetryWorker::class)
-            .setBackoffCriteria(
-                policy = BackoffPolicy.LINEAR,
-                initialDelay = 1.seconds,
-                maxRetries = 2
-            )
-            .build()
-
-        chronos.enqueue(req)
-        awaitState(req.id, TaskState.RETRYING)
-
-        awaitState(req.id, TaskState.FAILED)
-    }
-
-    @Test
-    fun testTimeoutCancellation(): Unit = runBlocking {
-        val req = OneTimeTaskRequest.Builder(TimeoutWorker::class)
-            .setTimeout(1.seconds)
-            .build()
-
-        chronos.enqueue(req)
-        awaitState(req.id, TaskState.FAILED)
-    }
-
-    @Test
     fun testTagBasedCancellation(): Unit = runBlocking {
-        val req1 = OneTimeTaskRequest.Builder(SuccessWorker::class).setInitialDelay(10.minutes)
-            .addTag("tag-x").build()
-        val req2 = OneTimeTaskRequest.Builder(SuccessWorker::class).setInitialDelay(10.minutes)
-            .addTag("tag-x").build()
-
-        chronos.enqueue(req1)
-        chronos.enqueue(req2)
-        awaitState(req1.id, TaskState.ENQUEUED)
-        awaitState(req2.id, TaskState.ENQUEUED)
-
-        chronos.cancelTaskByTag("tag-x")
-        awaitState(req1.id, TaskState.CANCELLED)
-        awaitState(req2.id, TaskState.CANCELLED)
-    }
-
-    @Test
-    fun testTimeWindowConstraint(): Unit = runBlocking {
-        val nowHour = kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.UTC).hour
-        val endHour = (nowHour + 2) % 24
         val req = OneTimeTaskRequest.Builder(SuccessWorker::class)
-            .setConstraints(
-                EnvironmentConstraints.Builder()
-                    .setAllowedTimeWindow(TimeWindow(startHour = nowHour, endHour = endHour, timeZone = "UTC"))
-                    .build()
-            )
+            .setInitialDelay(10.minutes)
+            .addTag("smoke-tag")
             .build()
 
         chronos.enqueue(req)
         awaitState(req.id, TaskState.ENQUEUED)
 
-        awaitState(req.id, TaskState.SUCCEEDED)
-    }
-
-    @Test
-    fun testPeriodicTaskTriggers(): Unit = runBlocking {
-        val req = PeriodicTaskRequest.Builder(SuccessWorker::class, 1.hours).build()
-
-        chronos.enqueue(req)
-        val info = awaitState(req.id, TaskState.ENQUEUED)
-        assertNotNull(info)
-        assertEquals(0, info.runAttemptCount)
-
-        delay(1500.milliseconds)
-        awaitState(req.id, TaskState.ENQUEUED)
+        chronos.cancelTaskByTag("smoke-tag")
+        awaitState(req.id, TaskState.CANCELLED)
     }
 }

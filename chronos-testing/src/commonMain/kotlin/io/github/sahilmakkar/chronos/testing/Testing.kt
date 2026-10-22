@@ -20,10 +20,12 @@ class TestChronos(
     override val registry: WorkerRegistry = WorkerRegistry(),
 ) : Chronos {
     val enqueuedRequests = mutableListOf<TaskRequest>()
+    private val taskTags = mutableMapOf<String, Set<String>>()
     private val taskInfos = MutableStateFlow<Map<String, TaskInfo>>(emptyMap())
 
     override fun enqueue(request: TaskRequest) {
         enqueuedRequests.add(request)
+        taskTags[request.id] = request.tags
         updateTaskInfo(request.id, TaskState.ENQUEUED)
     }
 
@@ -44,7 +46,8 @@ class TestChronos(
     }
 
     override fun cancelTaskByTag(tag: String) {
-        // Tag cancellation not fully fleshed in stub
+        val idsToCancel = taskTags.filter { (_, tags) -> tag in tags }.keys
+        idsToCancel.forEach { cancelTaskById(it) }
     }
 
     override fun cancelAllTasks() {
@@ -56,7 +59,10 @@ class TestChronos(
     }
 
     override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> {
-        return taskInfos.map { it.values.toList() }
+        return taskInfos.map { map ->
+            val matchingIds = taskTags.filter { (_, tags) -> tag in tags }.keys
+            matchingIds.mapNotNull { map[it] }
+        }
     }
 
     override suspend fun runPendingTasksNow() {
@@ -89,6 +95,7 @@ class TestChronos(
 
     override fun close() {
         enqueuedRequests.clear()
+        taskTags.clear()
         taskInfos.value = emptyMap()
     }
 

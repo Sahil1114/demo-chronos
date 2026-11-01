@@ -4,13 +4,13 @@ import androidx.compose.ui.window.ComposeUIViewController
 import io.github.sahilmakkar.chronos.Chronos
 import io.github.sahilmakkar.chronos.PlatformSupport
 import io.github.sahilmakkar.chronos.initialize
+import io.github.sahilmakkar.chronos.instance
 import platform.UIKit.UIViewController
 
-private val registry by lazy { createSampleRegistry() }
-private val chronos: Chronos by lazy {
-    Chronos.initialize(support = PlatformSupport(), registry = registry)
+fun initChronos() {
+    Chronos.initialize(support = PlatformSupport(), registry = createSampleRegistry())
 }
 
 fun MainViewController(): UIViewController = ComposeUIViewController {
-    App(chronos = chronos)
+    App(chronos = Chronos.instance)
 }

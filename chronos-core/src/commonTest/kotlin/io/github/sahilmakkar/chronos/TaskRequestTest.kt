@@ -18,9 +18,16 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.uuid.Uuid
 
 class TaskRequestTest {
 
+    @Test
+    fun testRequestIdIsCanonicalUuid() {
+        val id = sampleRequest().id
+        assertEquals(36, id.length)
+        assertEquals(id, Uuid.parse(id).toString())
+    }
     private class SampleWorker(data: TaskData) : TaskWorker(data) {
         override suspend fun doWork(): TaskResult = TaskResult.Success()
     }

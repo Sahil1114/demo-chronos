@@ -12,7 +12,7 @@ import kotlin.uuid.Uuid
 sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T, B>>(
     private val workerClass: KClass<out TaskWorker>
 ) {
-    protected var id: String = Uuid.random().toHexString()
+    protected var id: String = Uuid.random().toString()
     protected var inputData: TaskData = taskDataOf()
     protected var constraints: EnvironmentConstraints = EnvironmentConstraints()
     protected var initialDelay: Duration = Duration.ZERO

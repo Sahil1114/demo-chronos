@@ -25,9 +25,6 @@ class AndroidTaskExecutor(
 ) : TaskExecutor {
 
     override suspend fun execute(entity: TaskEntity, inputData: TaskData): TaskResult {
-        db.taskDao().updateTaskState(id = entity.id, state = TaskState.RUNNING)
-        db.taskDao().updateRunAttemptCount(id = entity.id, count = entity.runAttemptCount + 1)
-
         val workId = UUID.fromString(entity.id)
         val request = OneTimeWorkRequestBuilder<AndroidDelegatingWorker>()
             .setId(workId)

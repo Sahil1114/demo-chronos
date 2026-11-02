@@ -36,11 +36,20 @@ class FakeClock(var nowMs: Long = 1000L) : Clock {
 }
 
 class FakeTaskExecutor : TaskExecutor {
-    val executed = mutableListOf<String>()
-    var script: (TaskEntity) -> TaskResult = { TaskResult.Success() }
+    val executed: MutableList<String> = java.util.Collections.synchronizedList(mutableListOf())
+    private val activeCount = java.util.concurrent.atomic.AtomicInteger(0)
+    val peakConcurrency = java.util.concurrent.atomic.AtomicInteger(0)
+    var script: suspend (TaskEntity) -> TaskResult = { TaskResult.Success() }
+
     override suspend fun execute(entity: TaskEntity, inputData: TaskData): TaskResult {
-        executed += entity.id
-        return script(entity)
+        val current = activeCount.incrementAndGet()
+        peakConcurrency.updateAndGet { maxOf(it, current) }
+        try {
+            executed += entity.id
+            return script(entity)
+        } finally {
+            activeCount.decrementAndGet()
+        }
     }
 }
 

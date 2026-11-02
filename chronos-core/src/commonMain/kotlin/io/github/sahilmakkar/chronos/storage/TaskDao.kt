@@ -14,10 +14,24 @@ interface TaskDao {
     suspend fun insertTask(task: TaskEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTasks(tasks: List<TaskEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTags(tags: List<TaskTagEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDependencies(dependencies: List<TaskDependencyEntity>)
+
+    @androidx.room3.Transaction
+    suspend fun insertChain(
+        tasks: List<TaskEntity>,
+        tags: List<TaskTagEntity>,
+        dependencies: List<TaskDependencyEntity>
+    ) {
+        insertTasks(tasks)
+        insertTags(tags)
+        insertDependencies(dependencies)
+    }
 
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun getTask(id: String): TaskEntity?
@@ -33,6 +47,15 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET state = :state WHERE id = :id")
     suspend fun updateTaskState(id: String, state: TaskState)
+
+    @Query("UPDATE tasks SET state = :running WHERE id = :id AND state IN (:claimable)")
+    suspend fun claim(id: String, running: TaskState, claimable: List<TaskState>): Int
+
+    @Query("UPDATE tasks SET state = 'CANCELLED' WHERE id = :id AND state NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED')")
+    suspend fun cancelTaskIfActive(id: String): Int
+
+    @Query("UPDATE tasks SET state = 'CANCELLED' WHERE state NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED')")
+    suspend fun cancelAllActiveTasks(): Int
 
     @Query("UPDATE tasks SET state = :state, outputDataJson = :outputJson WHERE id = :id")
     suspend fun updateTaskStateAndOutput(id: String, state: TaskState, outputJson: String)

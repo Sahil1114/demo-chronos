@@ -5,10 +5,7 @@ import io.github.sahilmakkar.chronos.port.NetworkChecker
 import io.github.sahilmakkar.chronos.storage.TaskEntity
 import io.github.sahilmakkar.chronos.task.constraints.NetworkType
 import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
-import kotlin.time.Instant
 
 internal abstract class BaseConstraintVerifier(
     private val networkChecker: NetworkChecker? = null,
@@ -31,7 +28,7 @@ internal abstract class BaseConstraintVerifier(
         val timeZone = entity.windowTimeZone ?: return true
         return runCatching {
             TimeWindow(startHour = start, endHour = end, timeZone = timeZone)
-                .contains(clock.now())
-        }.getOrDefault(false)
+                .contains(now = clock.now())
+        }.getOrDefault(defaultValue = false)
     }
 }

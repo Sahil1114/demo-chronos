@@ -27,15 +27,34 @@ public sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T
 
     protected abstract fun self(): B
 
+    /**
+     * Sets the key-value input data payload supplied to the worker at runtime.
+     */
     public fun setInputData(inputData: TaskData): B = self().also { this.inputData = inputData }
 
+    /**
+     * Sets environmental requirements (network, battery, charging, time window) for executing this task.
+     */
     public fun setConstraints(constraints: EnvironmentConstraints): B =
         self().also { this.constraints = constraints }
 
+    /**
+     * Sets the duration to wait before the task first becomes eligible for execution.
+     */
     public fun setInitialDelay(delay: Duration): B = self().also { this.initialDelay = delay }
 
+    /**
+     * Sets the maximum execution duration permitted for the worker before timing out.
+     */
     public fun setTimeout(timeout: Duration): B = self().also { this.timeout = timeout }
 
+    /**
+     * Sets the retry policy, base backoff duration, and maximum retry count for failed runs.
+     *
+     * @param policy Delay progression algorithm (LINEAR or EXPONENTIAL).
+     * @param initialDelay Base duration multiplier used by the backoff algorithm.
+     * @param maxRetries Maximum number of retries permitted after initial failure (allowing `maxRetries + 1` total attempts).
+     */
     public fun setBackoffCriteria(policy: BackoffPolicy, initialDelay: Duration, maxRetries: Int): B =
         self().also {
             this.backoffPolicy = policy
@@ -43,6 +62,9 @@ public sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T
             this.maxRetries = maxRetries
         }
 
+    /**
+     * Adds an arbitrary categorization tag to this task request.
+     */
     public fun addTag(tag: String): B = self().also { this.tags.add(tag) }
 
     protected val resolvedWorkerClassName: String
@@ -71,6 +93,9 @@ public sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T
 
     protected abstract fun construct(): T
 
+    /**
+     * Validates configuration parameters and constructs the concrete [TaskRequest] instance.
+     */
     public fun build(): T {
         validateCommon()
         validateSpecific()

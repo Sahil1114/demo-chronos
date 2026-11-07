@@ -27,6 +27,9 @@ public class PeriodicTaskRequest internal constructor(
 
     /**
      * Builder for constructing a [PeriodicTaskRequest].
+     *
+     * @param workerClass Class reference of the [TaskWorker] that will perform the task.
+     * @param repeatInterval Recurrence interval between successive task runs (must be greater than zero).
      */
     public class Builder(workerClass: KClass<out TaskWorker>, private val repeatInterval: Duration) :
         TaskRequestBuilder<PeriodicTaskRequest, Builder>(workerClass) {

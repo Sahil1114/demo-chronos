@@ -26,6 +26,8 @@ public abstract class TaskWorker(public val inputData: TaskData = taskDataOf()) 
 
     /**
      * Updates real-time progress data for this task execution.
+     *
+     * @param data Key-value progress payload observable via [io.github.sahilmakkar.chronos.Chronos.observeTask].
      */
     public suspend fun setProgress(data: TaskData) {
         progressListener?.invoke(data)

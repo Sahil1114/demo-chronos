@@ -10,6 +10,9 @@ public class WorkerRegistry {
 
     /**
      * Registers a factory lambda for the given worker class name.
+     *
+     * @param className Fully-qualified name of the worker class.
+     * @param factory Lambda constructing a [TaskWorker] given input [TaskData].
      */
     public fun register(className: String, factory: (TaskData) -> TaskWorker) {
         factories[className] = factory
@@ -17,6 +20,11 @@ public class WorkerRegistry {
 
     /**
      * Creates a worker instance for the registered class name with the provided input data.
+     *
+     * @param className Fully-qualified name of the worker class.
+     * @param inputData Input parameters delivered to the constructed worker.
+     * @return The newly instantiated [TaskWorker].
+     * @throws IllegalArgumentException If no factory is registered for [className].
      */
     public fun createWorker(className: String, inputData: TaskData): TaskWorker {
         val factory = factories[className] ?: throw IllegalArgumentException(

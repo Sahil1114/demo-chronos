@@ -33,12 +33,12 @@ public data class TimeWindow(
      */
     public fun contains(now: Instant): Boolean {
         return runCatching {
-            val hour = now.toLocalDateTime(TimeZone.of(timeZone)).hour
+            val hour = now.toLocalDateTime(TimeZone.of(zoneId = timeZone)).hour
             if (startHour <= endHour) {
                 hour in startHour until endHour
             } else {
-                hour >= startHour || hour < endHour
+                hour !in endHour..<startHour
             }
-        }.getOrDefault(false)
+        }.getOrDefault(defaultValue = false)
     }
 }

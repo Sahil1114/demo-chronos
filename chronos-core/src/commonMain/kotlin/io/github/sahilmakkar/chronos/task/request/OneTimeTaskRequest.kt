@@ -27,6 +27,8 @@ public class OneTimeTaskRequest internal constructor(
 
     /**
      * Builder for constructing a [OneTimeTaskRequest].
+     *
+     * @param workerClass Class reference of the [TaskWorker] that will perform the task.
      */
     public class Builder(workerClass: KClass<out TaskWorker>) :
         TaskRequestBuilder<OneTimeTaskRequest, Builder>(workerClass) {

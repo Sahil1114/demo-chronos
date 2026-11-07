@@ -16,6 +16,10 @@ public class TaskChain(
 
     /**
      * Appends a subsequent task request to this execution chain.
+     *
+     * @param request The subsequent task to execute once prior tasks succeed.
+     * @param onFailure Behavior policy if the prior task fails (defaults to [DependentTaskPolicy.STOP_ON_FAILURE]).
+     * @return New [TaskChain] containing the appended task step.
      */
     public fun then(
         request: TaskRequest,
@@ -30,6 +34,9 @@ public class TaskChain(
     public companion object {
         /**
          * Begins a new chain starting with the specified task request.
+         *
+         * @param request The initial task request in the chain.
+         * @return A new single-step [TaskChain].
          */
         public fun start(request: TaskRequest): TaskChain = TaskChain(
             requests = listOf(request),

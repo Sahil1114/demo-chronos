@@ -10,6 +10,9 @@ import io.github.sahilmakkar.chronos.port.NetworkChecker
 import io.github.sahilmakkar.chronos.storage.TaskEntity
 import kotlin.time.Clock
 
+/**
+ * Android implementation of [ConstraintVerifier] evaluating device battery, storage, and network state.
+ */
 internal class AndroidConstraintVerifier(
     private val context: Context,
     networkChecker: NetworkChecker = AndroidNetworkChecker(context),

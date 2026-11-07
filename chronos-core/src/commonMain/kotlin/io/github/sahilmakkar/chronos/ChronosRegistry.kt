@@ -3,6 +3,9 @@ package io.github.sahilmakkar.chronos
 import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 
+/**
+ * Process-wide thread-safe registry holding the active [Chronos] instance.
+ */
 internal object ChronosRegistry {
     private var current: Chronos? = null
 

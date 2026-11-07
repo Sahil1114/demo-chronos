@@ -3,6 +3,9 @@ package io.github.sahilmakkar.chronos
 import io.github.sahilmakkar.chronos.port.NetworkChecker
 import java.net.NetworkInterface
 
+/**
+ * JVM network connectivity checker using standard Java network interfaces.
+ */
 internal class JvmNetworkChecker : NetworkChecker {
     override fun isConnected(): Boolean {
         return try {

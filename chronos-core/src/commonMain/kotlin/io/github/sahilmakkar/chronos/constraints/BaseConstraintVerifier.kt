@@ -7,6 +7,9 @@ import io.github.sahilmakkar.chronos.task.constraints.NetworkType
 import io.github.sahilmakkar.chronos.task.constraints.TimeWindow
 import kotlin.time.Clock
 
+/**
+ * Common base class providing shared constraint verification logic across platforms.
+ */
 internal abstract class BaseConstraintVerifier(
     private val networkChecker: NetworkChecker? = null,
     private val clock: Clock = Clock.System

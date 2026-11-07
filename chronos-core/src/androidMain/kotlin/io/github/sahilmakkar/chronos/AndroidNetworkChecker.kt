@@ -7,6 +7,9 @@ import android.net.NetworkCapabilities
 import io.github.sahilmakkar.chronos.port.NetworkChecker
 
 @SuppressLint("MissingPermission")
+/**
+ * Android implementation of [NetworkChecker] verifying active network capability and unmetered status.
+ */
 internal class AndroidNetworkChecker(private val context: Context) : NetworkChecker {
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 

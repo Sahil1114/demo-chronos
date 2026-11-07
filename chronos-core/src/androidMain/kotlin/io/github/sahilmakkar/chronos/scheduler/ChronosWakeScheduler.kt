@@ -12,6 +12,9 @@ import io.github.sahilmakkar.chronos.task.constraints.NetworkType
 import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
 
+/**
+ * Schedules Android WorkManager wake-up requests matching next due task execution times.
+ */
 internal class ChronosWakeScheduler(
     private val context: Context,
     private val db: ChronosDatabase,

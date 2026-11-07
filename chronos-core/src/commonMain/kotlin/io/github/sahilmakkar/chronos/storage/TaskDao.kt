@@ -7,6 +7,9 @@ import androidx.room3.Query
 import io.github.sahilmakkar.chronos.task.TaskState
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Room Data Access Object for tasks, tags, and dependencies tables.
+ */
 @Dao
 internal interface TaskDao {
 

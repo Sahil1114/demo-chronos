@@ -5,6 +5,9 @@ import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.model.toJson
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 
+/**
+ * Converts a public [TaskRequest] specification to a persistable [TaskEntity].
+ */
 internal fun TaskRequest.toEntity(
     scheduledAt: Long,
     uniqueName: String? = null,

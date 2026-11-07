@@ -6,6 +6,9 @@ import io.github.sahilmakkar.chronos.task.TaskState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+/**
+ * Default implementation of [TaskCanceller] cancelling tasks in Room database.
+ */
 internal class ChronosTaskCanceller(
     private val db: ChronosDatabase,
     private val coroutineScope: CoroutineScope,

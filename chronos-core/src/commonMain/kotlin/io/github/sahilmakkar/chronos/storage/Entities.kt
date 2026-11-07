@@ -14,6 +14,9 @@ import io.github.sahilmakkar.chronos.task.constraints.NetworkType
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
 
+/**
+ * Room entity representing an enqueued or active background task.
+ */
 @Entity(
     tableName = "tasks",
     indices = [Index(value = ["uniqueTaskName"])]

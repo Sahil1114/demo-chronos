@@ -11,6 +11,9 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
 @OptIn(ExperimentalForeignApi::class)
+/**
+ * Constructs an Apple/iOS Room database instance backed by SQLite.
+ */
 internal actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabase {
     val documentDirectory = NSFileManager.defaultManager.URLForDirectory(
         directory = NSDocumentDirectory,

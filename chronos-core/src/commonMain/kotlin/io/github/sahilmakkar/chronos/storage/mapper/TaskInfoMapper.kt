@@ -5,6 +5,9 @@ import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.model.fromJson
 
+/**
+ * Converts a persistent [TaskEntity] to a public [TaskInfo] snapshot.
+ */
 internal fun TaskEntity.toTaskInfo(): TaskInfo = TaskInfo(
     id = id,
     state = state,

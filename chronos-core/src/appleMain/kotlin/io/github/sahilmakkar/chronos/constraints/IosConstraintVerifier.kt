@@ -11,6 +11,9 @@ import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceBatteryState
 import kotlin.time.Clock
 
+/**
+ * iOS implementation of [ConstraintVerifier] evaluating device state and network connectivity.
+ */
 internal class IosConstraintVerifier(
     networkChecker: NetworkChecker,
     clock: Clock = Clock.System

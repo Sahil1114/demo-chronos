@@ -18,6 +18,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
+/**
+ * Default implementation of [TaskEnqueuer] persisting tasks into Room database.
+ */
 internal class ChronosTaskEnqueuer(
     private val db: ChronosDatabase,
     private val coroutineScope: CoroutineScope,

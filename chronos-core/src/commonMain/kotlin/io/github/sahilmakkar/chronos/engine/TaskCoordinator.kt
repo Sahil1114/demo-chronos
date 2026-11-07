@@ -26,6 +26,9 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 
+/**
+ * Central coordinator responsible for task claiming, dependency resolution, execution dispatch, and result handling.
+ */
 internal class TaskCoordinator(
     private val db: ChronosDatabase,
     private val taskExecutor: TaskExecutor,

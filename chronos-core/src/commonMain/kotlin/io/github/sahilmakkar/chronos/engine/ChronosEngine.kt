@@ -19,6 +19,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
 
+/**
+ * Core engine implementation tying together scheduling, observation, execution, and lifecycle management.
+ */
 internal class ChronosEngine(
     override val registry: WorkerRegistry,
     private val coroutineScope: CoroutineScope,

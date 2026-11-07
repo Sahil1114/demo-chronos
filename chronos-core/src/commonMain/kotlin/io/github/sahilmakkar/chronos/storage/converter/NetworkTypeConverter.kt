@@ -3,6 +3,9 @@ package io.github.sahilmakkar.chronos.storage.converter
 import androidx.room3.ColumnTypeConverter
 import io.github.sahilmakkar.chronos.task.constraints.NetworkType
 
+/**
+ * Room type converter for [NetworkType] enum values.
+ */
 internal class NetworkTypeConverter {
     @ColumnTypeConverter
     fun fromNetworkType(networkType: NetworkType): String {

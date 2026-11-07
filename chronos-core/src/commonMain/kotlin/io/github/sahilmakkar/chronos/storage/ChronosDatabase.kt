@@ -5,6 +5,9 @@ import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
 
+/**
+ * Room database definition for Chronos persistent task records.
+ */
 @Database(
     entities = [TaskEntity::class, TaskTagEntity::class, TaskDependencyEntity::class],
     version = 1

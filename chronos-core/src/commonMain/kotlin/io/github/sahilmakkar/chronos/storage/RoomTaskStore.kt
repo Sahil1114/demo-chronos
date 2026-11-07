@@ -6,6 +6,9 @@ import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+/**
+ * Implementation of [TaskStore] backed by Room database [TaskDao].
+ */
 internal class RoomTaskStore(
     private val dao: TaskDao
 ) : TaskStore {

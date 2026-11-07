@@ -16,6 +16,9 @@ import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
+/**
+ * Event loop that monitors the database for the next due task and triggers execution passes.
+ */
 internal class DueTimeLoop(
     private val db: ChronosDatabase,
     private val coordinator: TaskCoordinator,

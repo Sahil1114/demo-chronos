@@ -4,6 +4,9 @@ import io.github.sahilmakkar.chronos.port.NetworkChecker
 import platform.Network.*
 import platform.darwin.dispatch_get_main_queue
 
+/**
+ * iOS network connectivity checker evaluating path reachability.
+ */
 internal class IosNetworkChecker : NetworkChecker {
     private var connected = true
     private var expensive = false

@@ -7,6 +7,9 @@ import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 
 /** Schedules new tasks. */
+/**
+ * Port contract for enqueuing task requests into persistent storage.
+ */
 internal interface TaskEnqueuer {
     fun enqueue(request: TaskRequest)
     fun enqueueUniqueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest)

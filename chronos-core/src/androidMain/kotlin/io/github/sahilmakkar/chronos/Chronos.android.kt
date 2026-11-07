@@ -15,6 +15,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
+/**
+ * Android platform entry point implementing [Chronos.Companion.initialize].
+ */
 public actual fun Chronos.Companion.initialize(
     support: PlatformSupport,
     registry: WorkerRegistry

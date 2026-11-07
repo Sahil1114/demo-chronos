@@ -7,6 +7,9 @@ import kotlinx.coroutines.launch
 import platform.BackgroundTasks.*
 import platform.Foundation.*
 
+/**
+ * Integrates with iOS BGTaskScheduler framework to schedule background wake events.
+ */
 internal class IosBackgroundTaskScheduler(
     private val coroutineScope: CoroutineScope,
     private val onTaskFired: suspend () -> Unit,

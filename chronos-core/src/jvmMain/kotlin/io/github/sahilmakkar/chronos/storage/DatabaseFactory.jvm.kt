@@ -6,6 +6,9 @@ import io.github.sahilmakkar.chronos.PlatformSupport
 import kotlinx.coroutines.Dispatchers
 import java.io.File
 
+/**
+ * Constructs a JVM Room database instance backed by bundled SQLite.
+ */
 internal actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabase {
     val homeDir = System.getProperty("user.home")
     val dbFile = File(homeDir, ".chronos/chronos_work.db")

@@ -5,6 +5,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
+/**
+ * JVM background daemon managing the task execution dispatch loop.
+ */
 internal actual class Daemon actual constructor(
     private val coroutineScope: CoroutineScope,
     private val coordinator: TaskCoordinator,

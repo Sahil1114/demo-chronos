@@ -5,6 +5,9 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.github.sahilmakkar.chronos.PlatformSupport
 import kotlinx.coroutines.Dispatchers
 
+/**
+ * Constructs an Android Room database instance backed by SQLite.
+ */
 internal actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabase {
     val context = support.context
     val dbFile = context.getDatabasePath("chronos_work.db")

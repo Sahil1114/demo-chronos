@@ -2,6 +2,9 @@ package io.github.sahilmakkar.chronos.task.model
 
 import kotlinx.serialization.json.*
 
+/**
+ * Serializes [TaskData] key-value pairs into a JSON string.
+ */
 internal fun TaskData.toJson(): String {
     val jsonMap = values.mapValues { (_, value) ->
         when (value) {

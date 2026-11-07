@@ -6,6 +6,9 @@ import java.io.File
 
 import kotlin.time.Clock
 
+/**
+ * JVM implementation of [ConstraintVerifier] evaluating network and execution window constraints.
+ */
 internal class JvmConstraintVerifier(
     networkChecker: NetworkChecker,
     clock: Clock = Clock.System

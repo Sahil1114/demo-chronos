@@ -13,6 +13,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
+/**
+ * Executes task workers in-process by looking up registered factories in [WorkerRegistry].
+ */
 internal class InProcessTaskExecutor(
     private val db: ChronosDatabase,
     private val registry: WorkerRegistry

@@ -2,4 +2,7 @@ package io.github.sahilmakkar.chronos
 
 import android.content.Context
 
-actual class PlatformSupport(val context: Context)
+/**
+ * Android platform support wrapping application [Context].
+ */
+public actual class PlatformSupport(public val context: Context)

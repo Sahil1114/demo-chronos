@@ -71,4 +71,59 @@ class TaskDataJsonTest {
         assertTrue(TaskData.fromJson("not-a-json").isEmpty())
         assertTrue(TaskData.fromJson("{invalid json").isEmpty())
     }
+
+    @Test
+    fun testVeryLargeValues() {
+        val largeString = "a".repeat(100_000)
+        val original = taskDataOf(
+            "large" to largeString,
+            "int" to 99999
+        )
+        val json = original.toJson()
+        val restored = TaskData.fromJson(json)
+
+        assertEquals(largeString, restored.getString("large"))
+        assertEquals(99999, restored.getInt("int", 0))
+    }
+
+    @Test
+    fun testUnicodeCharacters() {
+        val unicodePayload = "🚀 Hello 世界 مرحبا بالعالم äöüß ∑ π"
+        val original = taskDataOf(
+            "unicodeKey" to unicodePayload,
+            "emojiOnly" to "🔥🎉🤖💯"
+        )
+        val json = original.toJson()
+        val restored = TaskData.fromJson(json)
+
+        assertEquals(unicodePayload, restored.getString("unicodeKey"))
+        assertEquals("🔥🎉🤖💯", restored.getString("emojiOnly"))
+    }
+
+    @Test
+    fun testDeeplyNestedStructuresIgnoredWithoutCrashing() {
+        val complexJson = """
+            {
+                "scalar": "valid",
+                "nestedObject": {
+                    "level1": {
+                        "level2": {
+                            "array": [1, {"deep": true}, [2, 3]]
+                        }
+                    }
+                },
+                "nestedArray": [
+                    {"a": 1},
+                    {"b": [2, 3, 4]}
+                ],
+                "validNumber": 42
+            }
+        """.trimIndent()
+
+        val restored = TaskData.fromJson(complexJson)
+        assertEquals("valid", restored.getString("scalar"))
+        assertEquals(42, restored.getInt("validNumber", 0))
+        assertEquals(null, restored.getString("nestedObject"))
+        assertEquals(null, restored.getString("nestedArray"))
+    }
 }

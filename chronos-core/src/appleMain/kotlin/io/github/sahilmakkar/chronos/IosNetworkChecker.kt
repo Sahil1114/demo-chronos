@@ -4,7 +4,7 @@ import io.github.sahilmakkar.chronos.port.NetworkChecker
 import platform.Network.*
 import platform.darwin.dispatch_get_main_queue
 
-class IosNetworkChecker : NetworkChecker {
+internal class IosNetworkChecker : NetworkChecker {
     private var connected = true
     private var expensive = false
     private val monitor = nw_path_monitor_create()
@@ -19,5 +19,5 @@ class IosNetworkChecker : NetworkChecker {
     }
 
     override fun isConnected(): Boolean = connected
-    override fun isUnmetered(): Boolean = !expensive
+    override fun isUnmetered(): Boolean = connected && !expensive
 }

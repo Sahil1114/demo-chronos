@@ -7,7 +7,10 @@ import io.github.sahilmakkar.chronos.worker.TaskWorker
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
-class PeriodicTaskRequest internal constructor(
+/**
+ * Task request recurring at fixed time intervals.
+ */
+public class PeriodicTaskRequest internal constructor(
     override val id: String,
     override val workerClassName: String,
     override val taskData: TaskData,
@@ -22,7 +25,10 @@ class PeriodicTaskRequest internal constructor(
 ) : TaskRequest() {
     override val isPeriodic: Boolean = true
 
-    class Builder(workerClass: KClass<out TaskWorker>, private val repeatInterval: Duration) :
+    /**
+     * Builder for constructing a [PeriodicTaskRequest].
+     */
+    public class Builder(workerClass: KClass<out TaskWorker>, private val repeatInterval: Duration) :
         TaskRequestBuilder<PeriodicTaskRequest, Builder>(workerClass) {
 
         override fun self(): Builder = this

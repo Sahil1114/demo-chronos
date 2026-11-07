@@ -6,6 +6,11 @@ plugins {
 
 kotlin {
     jvmToolchain(17)
+    explicitApi()
+
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
 
     androidTarget()
 

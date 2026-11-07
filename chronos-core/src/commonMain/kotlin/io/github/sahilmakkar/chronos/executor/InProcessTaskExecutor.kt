@@ -9,6 +9,8 @@ import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.taskDataOf
 import io.github.sahilmakkar.chronos.task.model.toJson
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
 internal class InProcessTaskExecutor(
@@ -17,13 +19,9 @@ internal class InProcessTaskExecutor(
 ) : TaskExecutor {
 
     override suspend fun execute(entity: TaskEntity, inputData: TaskData): TaskResult {
-        db.taskDao().updateTaskState(id = entity.id, state = TaskState.RUNNING)
-        db.taskDao().updateRunAttemptCount(id = entity.id, count = entity.runAttemptCount + 1)
-
         val worker = try {
             registry.createWorker(className = entity.workerClassName, inputData = inputData)
         } catch (e: Exception) {
-            db.taskDao().updateTaskState(id = entity.id, state = TaskState.FAILED)
             return TaskResult.Failure(outputData = taskDataOf("error" to "Worker not registered: ${entity.workerClassName}"))
         }
 
@@ -41,6 +39,14 @@ internal class InProcessTaskExecutor(
             } else {
                 worker.doWork()
             }
+        } catch (e: TimeoutCancellationException) {
+            TaskResult.Failure(
+                outputData = taskDataOf(
+                    "error" to "Task timed out after ${entity.timeoutMs}ms"
+                )
+            )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             TaskResult.Failure(
                 outputData = taskDataOf(
@@ -50,6 +56,3 @@ internal class InProcessTaskExecutor(
         }
     }
 }
-
-@Deprecated("Use InProcessTaskExecutor instead", ReplaceWith("InProcessTaskExecutor"))
-internal typealias WorkTaskExecutor = InProcessTaskExecutor

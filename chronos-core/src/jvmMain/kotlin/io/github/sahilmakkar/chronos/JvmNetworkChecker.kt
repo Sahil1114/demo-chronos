@@ -3,7 +3,7 @@ package io.github.sahilmakkar.chronos
 import io.github.sahilmakkar.chronos.port.NetworkChecker
 import java.net.NetworkInterface
 
-class JvmNetworkChecker : NetworkChecker {
+internal class JvmNetworkChecker : NetworkChecker {
     override fun isConnected(): Boolean {
         return try {
             val interfaces = NetworkInterface.getNetworkInterfaces()

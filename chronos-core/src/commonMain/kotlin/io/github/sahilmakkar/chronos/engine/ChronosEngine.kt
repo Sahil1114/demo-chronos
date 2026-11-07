@@ -11,10 +11,13 @@ import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
+import io.github.sahilmakkar.chronos.scheduler.WakeScheduler
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.runBlocking
 
 internal class ChronosEngine(
     override val registry: WorkerRegistry,
@@ -24,7 +27,8 @@ internal class ChronosEngine(
     private val enqueuer: TaskEnqueuer,
     private val canceller: TaskCanceller,
     private val taskStore: TaskStore,
-    private val db: ChronosDatabase? = null
+    private val onClose: () -> Unit = {},
+    val wakeScheduler: WakeScheduler? = null
 ) : Chronos {
 
     init {
@@ -56,11 +60,18 @@ internal class ChronosEngine(
     override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> =
         taskStore.observeTasksByTag(tag)
 
-    override suspend fun runPendingTasksNow() = coordinator.runPendingTasks()
+    override suspend fun runPendingTasksNow() {
+        coordinator.runPendingTasks()
+        wakeScheduler?.scheduleNextWake()
+    }
 
     override fun close() {
         daemon.stop()
-        coroutineScope.cancel()
-        db?.close()
+        val job = coroutineScope.coroutineContext[Job]
+        job?.cancel()
+        runBlocking {
+            job?.children?.toList()?.forEach { it.join() }
+        }
+        onClose()
     }
 }

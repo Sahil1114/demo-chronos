@@ -8,16 +8,30 @@ import io.github.sahilmakkar.chronos.task.TaskState
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface TaskDao {
+internal interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTask(task: TaskEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTasks(tasks: List<TaskEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTags(tags: List<TaskTagEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDependencies(dependencies: List<TaskDependencyEntity>)
+
+    @androidx.room3.Transaction
+    suspend fun insertChain(
+        tasks: List<TaskEntity>,
+        tags: List<TaskTagEntity>,
+        dependencies: List<TaskDependencyEntity>
+    ) {
+        insertTasks(tasks)
+        insertTags(tags)
+        insertDependencies(dependencies)
+    }
 
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun getTask(id: String): TaskEntity?
@@ -33,6 +47,15 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET state = :state WHERE id = :id")
     suspend fun updateTaskState(id: String, state: TaskState)
+
+    @Query("UPDATE tasks SET state = :running WHERE id = :id AND state IN (:claimable)")
+    suspend fun claim(id: String, running: TaskState, claimable: List<TaskState>): Int
+
+    @Query("UPDATE tasks SET state = 'CANCELLED' WHERE id = :id AND state NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED')")
+    suspend fun cancelTaskIfActive(id: String): Int
+
+    @Query("UPDATE tasks SET state = 'CANCELLED' WHERE state NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED')")
+    suspend fun cancelAllActiveTasks(): Int
 
     @Query("UPDATE tasks SET state = :state, outputDataJson = :outputJson WHERE id = :id")
     suspend fun updateTaskStateAndOutput(id: String, state: TaskState, outputJson: String)
@@ -70,26 +93,12 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :id")
     fun observeTask(id: String): Flow<TaskEntity?>
 
+    @Query("SELECT MIN(scheduledAt) FROM tasks WHERE state IN (:states)")
+    fun observeNextDueAt(states: List<TaskState>): Flow<Long?>
+
+    @Query("SELECT * FROM tasks WHERE state IN (:states) ORDER BY scheduledAt ASC LIMIT 1")
+    suspend fun getNextDueTask(states: List<TaskState>): TaskEntity?
+
     @Query("SELECT * FROM tasks WHERE id IN (SELECT taskId FROM task_tags WHERE tag = :tag)")
     fun observeTasksByTag(tag: String): Flow<List<TaskEntity>>
-
-    // Compatibility methods delegating to new names
-    suspend fun insertWorkRequest(workRequest: TaskEntity) = insertTask(workRequest)
-    suspend fun getWorkRequest(id: String): TaskEntity? = getTask(id)
-    suspend fun getWorkRequestByName(name: String): TaskEntity? = getTaskByName(name)
-    suspend fun getWorkRequestsByState(state: TaskState): List<TaskEntity> = getTasksByState(state)
-    suspend fun getAllWorkRequests(): List<TaskEntity> = getAllTasks()
-    suspend fun updateWorkState(id: String, state: TaskState) = updateTaskState(id, state)
-    suspend fun updateWorkStateAndOutput(id: String, state: TaskState, outputJson: String) =
-        updateTaskStateAndOutput(id, state, outputJson)
-    suspend fun updateWorkProgress(id: String, progressJson: String) = updateTaskProgress(id, progressJson)
-    suspend fun deleteWorkRequest(id: String) = deleteTask(id)
-    suspend fun deleteAllWorkRequests() = deleteAllTasks()
-    suspend fun getTagsForWorkRequest(workRequestId: String): List<String> = getTagsForTask(workRequestId)
-    suspend fun getWorkRequestIdsByTag(tag: String): List<String> = getTaskIdsByTag(tag)
-    fun observeWorkRequest(id: String): Flow<TaskEntity?> = observeTask(id)
-    fun observeWorkRequestsByTag(tag: String): Flow<List<TaskEntity>> = observeTasksByTag(tag)
 }
-
-@Deprecated("Use TaskDao instead", ReplaceWith("TaskDao"))
-typealias WorkDao = TaskDao

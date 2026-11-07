@@ -1,22 +1,24 @@
 package io.github.sahilmakkar.chronos.task.request
 
+import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
-import io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints
 import kotlin.time.Duration
 
-
-sealed class TaskRequest {
-    abstract val id: String
-    abstract val workerClassName: String
-    abstract val taskData: TaskData
-    abstract val constraints: EnvironmentConstraints
-    abstract val initialDelay: Duration
-    abstract val timeout: Duration?
-    abstract val backoffPolicy: BackoffPolicy
-    abstract val backoffDelay: Duration
-    abstract val maxRetries: Int
-    abstract val tags: Set<String>
-    abstract val isPeriodic: Boolean
-    abstract val repeatInterval: Duration?
+/**
+ * Base definition of a task request submitted to Chronos.
+ */
+public sealed class TaskRequest {
+    public abstract val id: String
+    public abstract val workerClassName: String
+    public abstract val taskData: TaskData
+    public abstract val constraints: EnvironmentConstraints
+    public abstract val initialDelay: Duration
+    public abstract val timeout: Duration?
+    public abstract val backoffPolicy: BackoffPolicy
+    public abstract val backoffDelay: Duration
+    public abstract val maxRetries: Int
+    public abstract val tags: Set<String>
+    public abstract val isPeriodic: Boolean
+    public abstract val repeatInterval: Duration?
 }

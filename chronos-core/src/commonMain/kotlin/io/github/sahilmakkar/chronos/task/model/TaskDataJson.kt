@@ -2,7 +2,7 @@ package io.github.sahilmakkar.chronos.task.model
 
 import kotlinx.serialization.json.*
 
-fun TaskData.toJson(): String {
+internal fun TaskData.toJson(): String {
     val jsonMap = values.mapValues { (_, value) ->
         when (value) {
             is String -> JsonPrimitive(value)
@@ -14,25 +14,26 @@ fun TaskData.toJson(): String {
     return Json.encodeToString(serializer = JsonObject.serializer(), value = JsonObject(jsonMap))
 }
 
-fun TaskData.Companion.fromJson(json: String): TaskData {
+internal fun TaskData.Companion.fromJson(json: String): TaskData {
     if (json.isBlank()) return TaskData()
 
     return try {
         val jsonObject = Json.decodeFromString(JsonObject.serializer(), json)
-        val map = jsonObject.mapValues { (_, jsonElement) ->
-            if (jsonElement is JsonPrimitive) {
-                if (jsonElement.isString) {
-                    jsonElement.content
-                } else {
-                    jsonElement.booleanOrNull
-                        ?: jsonElement.longOrNull
-                        ?: jsonElement.doubleOrNull
-                        ?: jsonElement.content
+        val map = buildMap {
+            jsonObject.forEach { (key, jsonElement) ->
+                if (jsonElement is JsonPrimitive && jsonElement !is JsonNull) {
+                    val value: Any = if (jsonElement.isString) {
+                        jsonElement.content
+                    } else {
+                        jsonElement.booleanOrNull
+                            ?: jsonElement.longOrNull
+                            ?: jsonElement.doubleOrNull
+                            ?: jsonElement.content
+                    }
+                    put(key, value)
                 }
-            } else {
-                null
             }
-        }.filterValues { it != null } as  Map<String, Any>
+        }
 
         TaskData(map)
     } catch (e: Exception) {

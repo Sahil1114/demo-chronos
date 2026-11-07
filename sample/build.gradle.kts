@@ -30,6 +30,9 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
         androidMain.dependencies {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.lifecycle.viewmodel.compose)

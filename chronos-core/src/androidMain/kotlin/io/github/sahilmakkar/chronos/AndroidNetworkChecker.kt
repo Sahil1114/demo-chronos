@@ -7,7 +7,7 @@ import android.net.NetworkCapabilities
 import io.github.sahilmakkar.chronos.port.NetworkChecker
 
 @SuppressLint("MissingPermission")
-class AndroidNetworkChecker(private val context: Context) : NetworkChecker {
+internal class AndroidNetworkChecker(private val context: Context) : NetworkChecker {
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     override fun isConnected(): Boolean {

@@ -1,6 +1,10 @@
 package io.github.sahilmakkar.chronos
 
+import io.github.sahilmakkar.chronos.engine.TaskCoordinator
 import io.github.sahilmakkar.chronos.executor.InProcessTaskExecutor
+import io.github.sahilmakkar.chronos.scheduler.ChronosTaskCanceller
+import io.github.sahilmakkar.chronos.scheduler.ChronosTaskEnqueuer
+import io.github.sahilmakkar.chronos.storage.TaskEntity
 import io.github.sahilmakkar.chronos.storage.mapper.toEntity
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
@@ -9,14 +13,21 @@ import io.github.sahilmakkar.chronos.task.model.fromJson
 import io.github.sahilmakkar.chronos.task.model.taskDataOf
 import io.github.sahilmakkar.chronos.task.model.toJson
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
+import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 import io.github.sahilmakkar.chronos.worker.TaskWorker
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -100,7 +111,8 @@ class TaskCoordinatorTest {
         h.enqueue(req)
 
         h.runPendingTasks()
-        h.db.taskDao().updateRunAttemptCount(req.id, 1)
+        h.clock.advance(10_000L)
+        h.runPendingTasks()
         h.clock.advance(10_000L)
         h.runPendingTasks()
 
@@ -149,6 +161,19 @@ class TaskCoordinatorTest {
         }
     }
 
+    class HangingWorker(data: TaskData) : TaskWorker(data) {
+        override suspend fun doWork(): TaskResult {
+            hangingStarted?.complete(Unit)
+            hangingBlocker?.await()
+            return TaskResult.Success()
+        }
+
+        companion object {
+            var hangingStarted: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+            var hangingBlocker: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+        }
+    }
+
     @Test
     fun `worker not registered marks task failed`() = runTest {
         val registry = WorkerRegistry()
@@ -194,6 +219,73 @@ class TaskCoordinatorTest {
 
         val entity = h.db.taskDao().getTask(req.id)
         assertEquals(TaskState.FAILED, entity?.state)
+        val output = TaskData.fromJson(entity?.outputDataJson ?: "")
+        assertEquals("Task timed out after 50ms", output.getString("error"))
+    }
+
+    @Test
+    fun `closing Chronos while slow worker is running leaves task in enqueued state`() = runTest {
+        val slowStarted = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val slowBlocker = kotlinx.coroutines.CompletableDeferred<Unit>()
+        HangingWorker.hangingStarted = slowStarted
+        HangingWorker.hangingBlocker = slowBlocker
+
+        val tempDb = File.createTempFile("chronos_close_test_", ".db").apply { deleteOnExit() }
+        val testDb = createTestDatabase(tempDb)
+
+        val registry = WorkerRegistry().apply {
+            register(HangingWorker::class.qualifiedName!!) { HangingWorker(it) }
+        }
+        val realExecutor = InProcessTaskExecutor(testDb, registry)
+        val coordinator = io.github.sahilmakkar.chronos.engine.TaskCoordinator(
+            db = testDb,
+            taskExecutor = realExecutor,
+            constraintProvider = h.constraintVerifier,
+            clock = h.clock
+        )
+        val engineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val daemon = io.github.sahilmakkar.chronos.engine.Daemon(
+            coroutineScope = engineScope,
+            coordinator = coordinator,
+            db = testDb
+        )
+        val enqueuer = ChronosTaskEnqueuer(
+            db = testDb,
+            coroutineScope = engineScope,
+            coordinator = coordinator,
+            clock = h.clock
+        )
+        val canceller = ChronosTaskCanceller(
+            db = testDb,
+            coroutineScope = engineScope
+        )
+        val engine = io.github.sahilmakkar.chronos.engine.ChronosEngine(
+            registry = registry,
+            coroutineScope = engineScope,
+            coordinator = coordinator,
+            daemon = daemon,
+            enqueuer = enqueuer,
+            canceller = canceller,
+            taskStore = io.github.sahilmakkar.chronos.storage.RoomTaskStore(testDb.taskDao()),
+            onClose = { testDb.close() }
+        )
+
+        val req = OneTimeTaskRequest.Builder(HangingWorker::class).build()
+        engine.enqueue(req)
+
+        slowStarted.await()
+        assertEquals(TaskState.RUNNING, testDb.taskDao().getTask(req.id)?.state)
+
+        engine.close()
+        engineScope.coroutineContext[kotlinx.coroutines.Job]?.children?.toList()?.forEach { it.join() }
+
+        val dbCheck = createTestDatabase(tempDb)
+        val entity = dbCheck.taskDao().getTask(req.id)
+        assertEquals(TaskState.ENQUEUED, entity?.state)
+        dbCheck.close()
+        tempDb.delete()
+        File("${tempDb.absolutePath}-wal").delete()
+        File("${tempDb.absolutePath}-shm").delete()
     }
 
     @Test
@@ -242,6 +334,25 @@ class TaskCoordinatorTest {
         assertEquals(2, h.executor.executed.size)
         val nextEntity = h.db.taskDao().getTask(req.id)
         assertEquals(TaskState.ENQUEUED, nextEntity?.state)
+    }
+
+    @Test
+    fun `explicit cancelTaskById on periodic task transitions to cancelled and does not run again`() = runTest {
+        val interval = 15.minutes
+        val req = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = interval).build()
+
+        h.enqueue(req)
+        h.cancelTaskById(req.id)
+
+        val entity = h.db.taskDao().getTask(req.id)
+        assertEquals(TaskState.CANCELLED, entity?.state)
+
+        val executedBefore = h.executor.executed.size
+        h.clock.advance(interval.inWholeMilliseconds)
+        h.runPendingTasks()
+
+        assertEquals(executedBefore, h.executor.executed.size)
+        assertEquals(TaskState.CANCELLED, h.db.taskDao().getTask(req.id)?.state)
     }
 
     @Test
@@ -309,5 +420,111 @@ class TaskCoordinatorTest {
         sharedDbFile.delete()
         File("${sharedDbFile.absolutePath}-wal").delete()
         File("${sharedDbFile.absolutePath}-shm").delete()
+    }
+
+    @Test
+    fun `tasks waiting for semaphore permit remain ENQUEUED until permit acquired`() = runTest {
+        val testDb = createTestDatabase(File.createTempFile("sem_test_", ".db").apply { deleteOnExit() })
+        val t1Started = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val t1Proceed = kotlinx.coroutines.CompletableDeferred<Unit>()
+
+        val testExecutor = object : io.github.sahilmakkar.chronos.port.TaskExecutor {
+            override suspend fun execute(entity: TaskEntity, inputData: TaskData): TaskResult {
+                if (entity.id == "t1") {
+                    t1Started.complete(Unit)
+                    t1Proceed.await()
+                }
+                return TaskResult.Success()
+            }
+        }
+
+        val testCoordinator = TaskCoordinator(
+            db = testDb,
+            taskExecutor = testExecutor,
+            constraintProvider = FakeConstraintVerifier(),
+            clock = h.clock,
+            maxConcurrentTasks = 1
+        )
+
+        val testScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val t1 = h.request().toEntity(scheduledAt = h.clock.nowMs).copy(id = "t1")
+            testDb.taskDao().insertTask(t1)
+
+            val runJob1 = testScope.launch {
+                testCoordinator.runPendingTasks()
+            }
+            t1Started.await()
+            assertEquals(TaskState.RUNNING, testDb.taskDao().getTask("t1")?.state)
+
+            val t2 = h.request().toEntity(scheduledAt = h.clock.nowMs).copy(id = "t2")
+            testDb.taskDao().insertTask(t2)
+
+            val runJob2 = testScope.launch {
+                testCoordinator.runPendingTasks()
+            }
+
+            withContext(Dispatchers.Default) { delay(200) }
+
+            assertEquals(TaskState.ENQUEUED, testDb.taskDao().getTask("t2")?.state)
+
+            t1Proceed.complete(Unit)
+            runJob1.join()
+            runJob2.join()
+
+            assertEquals(TaskState.SUCCEEDED, testDb.taskDao().getTask("t1")?.state)
+            assertEquals(TaskState.SUCCEEDED, testDb.taskDao().getTask("t2")?.state)
+        } finally {
+            t1Proceed.complete(Unit)
+            testScope.cancel()
+            testDb.close()
+        }
+    }
+
+    @Test
+    fun `cancelled task in flight remains CANCELLED and is not reset to ENQUEUED`() = runTest {
+        val testDb = createTestDatabase(File.createTempFile("cancel_test_", ".db").apply { deleteOnExit() })
+        val started = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val pause = kotlinx.coroutines.CompletableDeferred<Unit>()
+
+        val testExecutor = object : io.github.sahilmakkar.chronos.port.TaskExecutor {
+            override suspend fun execute(entity: TaskEntity, inputData: TaskData): TaskResult {
+                started.complete(Unit)
+                pause.await()
+                return TaskResult.Success()
+            }
+        }
+
+        val testCoordinator = TaskCoordinator(
+            db = testDb,
+            taskExecutor = testExecutor,
+            constraintProvider = FakeConstraintVerifier(),
+            clock = h.clock
+        )
+
+        val testScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val req = h.request().toEntity(scheduledAt = h.clock.nowMs)
+            testDb.taskDao().insertTask(req)
+
+            val runJob = testScope.launch {
+                testCoordinator.runPendingTasks()
+            }
+
+            started.await()
+            assertEquals(TaskState.RUNNING, testDb.taskDao().getTask(req.id)?.state)
+
+            testDb.taskDao().cancelTaskIfActive(req.id)
+            assertEquals(TaskState.CANCELLED, testDb.taskDao().getTask(req.id)?.state)
+
+            runJob.cancel()
+            runJob.join()
+
+            assertEquals(TaskState.CANCELLED, testDb.taskDao().getTask(req.id)?.state)
+        } finally {
+            pause.complete(Unit)
+            testScope.cancel()
+            testDb.close()
+        }
     }
 }

@@ -158,4 +158,33 @@ class UniqueTaskPolicyTest {
 
         assertEquals(listOf(normalReq.id), h.executor.executed)
     }
+
+    @Test
+    fun `periodic keep policy retains existing periodic task and ignores new periodic task`() = runTest {
+        val p1 = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = 15.minutes).build()
+        val p2 = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = 30.minutes).build()
+
+        h.enqueueUniquePeriodicTask("periodic_keep", UniqueTaskPolicy.KEEP, p1)
+        h.runPendingTasks()
+        assertEquals(TaskState.ENQUEUED, h.db.taskDao().getTask(p1.id)?.state)
+
+        h.enqueueUniquePeriodicTask("periodic_keep", UniqueTaskPolicy.KEEP, p2)
+        h.runPendingTasks()
+        assertEquals(null, h.db.taskDao().getTask(p2.id))
+    }
+
+    @Test
+    fun `periodic replace policy cancels existing periodic task and enqueues new periodic task`() = runTest {
+        val p1 = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = 15.minutes).build()
+        val p2 = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = 30.minutes).build()
+
+        h.enqueueUniquePeriodicTask("periodic_replace", UniqueTaskPolicy.REPLACE, p1)
+        h.runPendingTasks()
+        assertEquals(TaskState.ENQUEUED, h.db.taskDao().getTask(p1.id)?.state)
+
+        h.enqueueUniquePeriodicTask("periodic_replace", UniqueTaskPolicy.REPLACE, p2)
+        h.runPendingTasks()
+        assertEquals(TaskState.CANCELLED, h.db.taskDao().getTask(p1.id)?.state)
+        assertEquals(TaskState.ENQUEUED, h.db.taskDao().getTask(p2.id)?.state)
+    }
 }

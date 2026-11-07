@@ -23,7 +23,7 @@ import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
     BackoffPolicyConverter::class,
     NetworkTypeConverter::class
 )
-data class TaskEntity(
+internal data class TaskEntity(
     @PrimaryKey val id: String,
     val workerClassName: String,
     val state: TaskState,
@@ -67,7 +67,7 @@ data class TaskEntity(
     ],
     indices = [Index(value = ["tag"]), Index(value = ["taskId"])]
 )
-data class TaskTagEntity(
+internal data class TaskTagEntity(
     val taskId: String,
     val tag: String
 )
@@ -92,17 +92,8 @@ data class TaskTagEntity(
     indices = [Index(value = ["parentTaskId"]), Index(value = ["childTaskId"])]
 )
 @ColumnTypeConverters(DependentTaskPolicyConverter::class)
-data class TaskDependencyEntity(
+internal data class TaskDependencyEntity(
     val parentTaskId: String,
     val childTaskId: String,
     val chainFailurePolicy: DependentTaskPolicy = DependentTaskPolicy.STOP_ON_FAILURE
 )
-
-@Deprecated("Use TaskEntity instead", ReplaceWith("TaskEntity"))
-typealias WorkRequestEntity = TaskEntity
-
-@Deprecated("Use TaskTagEntity instead", ReplaceWith("TaskTagEntity"))
-typealias WorkTagEntity = TaskTagEntity
-
-@Deprecated("Use TaskDependencyEntity instead", ReplaceWith("TaskDependencyEntity"))
-typealias WorkDependencyEntity = TaskDependencyEntity

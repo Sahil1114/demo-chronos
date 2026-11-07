@@ -5,13 +5,10 @@ import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.model.fromJson
 
-fun TaskEntity.toTaskInfo() = TaskInfo(
+internal fun TaskEntity.toTaskInfo(): TaskInfo = TaskInfo(
     id = id,
     state = state,
     outputData = TaskData.fromJson(outputDataJson),
     progress = TaskData.fromJson(progressDataJson),
     runAttemptCount = runAttemptCount
 )
-
-@Deprecated("Use toTaskInfo() instead", ReplaceWith("toTaskInfo()"))
-fun TaskEntity.toWorkInfo() = toTaskInfo()

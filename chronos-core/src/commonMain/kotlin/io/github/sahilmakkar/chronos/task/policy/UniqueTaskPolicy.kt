@@ -3,7 +3,7 @@ package io.github.sahilmakkar.chronos.task.policy
 /**
  * Policy defining behavior when enqueuing unique task names that already exist.
  */
-enum class UniqueTaskPolicy {
+public enum class UniqueTaskPolicy {
     /**
      * Keep the existing active task and ignore the new request.
      */

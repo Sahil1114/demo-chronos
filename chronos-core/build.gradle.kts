@@ -8,6 +8,11 @@ plugins {
 
 kotlin {
     jvmToolchain(17)
+    explicitApi()
+
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
 
     androidTarget()
     iosArm64()
@@ -34,7 +39,14 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.workmanager.ktx)
             implementation(libs.kotlinx.coroutines.android)
-            implementation(libs.androidx.startup.runtime)
+        }
+        androidInstrumentedTest.dependencies {
+            implementation(libs.workmanager.testing)
+            implementation(libs.androidx.test.core)
+            implementation(libs.androidx.test.runner)
+            implementation(libs.androidx.test.junit)
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 
@@ -48,6 +60,7 @@ android {
     compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 }
 

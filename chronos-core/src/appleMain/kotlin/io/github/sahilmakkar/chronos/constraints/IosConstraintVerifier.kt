@@ -9,13 +9,17 @@ import platform.Foundation.NSHomeDirectory
 import platform.Foundation.NSNumber
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceBatteryState
+import kotlin.time.Clock
 
 internal class IosConstraintVerifier(
     networkChecker: NetworkChecker,
-) : BaseConstraintVerifier(networkChecker) {
+    clock: Clock = Clock.System
+) : BaseConstraintVerifier(networkChecker, clock) {
 
-    init {
-        UIDevice.currentDevice.batteryMonitoringEnabled = true
+    private fun ensureBatteryMonitoring() {
+        if (!UIDevice.currentDevice.batteryMonitoringEnabled) {
+            UIDevice.currentDevice.batteryMonitoringEnabled = true
+        }
     }
 
     override fun isSatisfied(entity: TaskEntity): Boolean {
@@ -28,12 +32,14 @@ internal class IosConstraintVerifier(
     }
 
     private fun isCharging(): Boolean {
+        ensureBatteryMonitoring()
         val state = UIDevice.currentDevice.batteryState
         return state == UIDeviceBatteryState.UIDeviceBatteryStateCharging ||
                 state == UIDeviceBatteryState.UIDeviceBatteryStateFull
     }
 
     private fun isBatteryNotLow(): Boolean {
+        ensureBatteryMonitoring()
         val level = UIDevice.currentDevice.batteryLevel
         return level !in 0.0f..<0.20f
     }
@@ -49,6 +55,3 @@ internal class IosConstraintVerifier(
         return freeSize > 100_000_000L
     }
 }
-
-@Deprecated("Use IosConstraintVerifier instead", ReplaceWith("IosConstraintVerifier"))
-internal typealias WorkConstraintVerifier = IosConstraintVerifier

@@ -12,39 +12,47 @@ internal class ChronosTaskCanceller(
     private val onCancelById: ((String) -> Unit)? = null,
     private val onCancelByTag: ((String) -> Unit)? = null,
     private val onCancelAll: (() -> Unit)? = null,
+    private val wakeScheduler: WakeScheduler? = null
 ) : TaskCanceller {
 
     override fun cancelTaskById(id: String) {
         onCancelById?.invoke(id)
         coroutineScope.launch {
-            db.taskDao().updateTaskState(id = id, state = TaskState.CANCELLED)
-            cancelDownstream(id)
+            val updated = db.taskDao().cancelTaskIfActive(id)
+            if (updated > 0) {
+                cancelDownstream(id)
+            }
+            wakeScheduler?.scheduleNextWake()
         }
     }
 
     override fun cancelTaskByTag(tag: String) {
         onCancelByTag?.invoke(tag)
         coroutineScope.launch {
-            db.taskDao().getTaskIdsByTag(tag).forEach { cancelTaskById(it) }
+            db.taskDao().getTaskIdsByTag(tag).forEach { id ->
+                val updated = db.taskDao().cancelTaskIfActive(id)
+                if (updated > 0) {
+                    cancelDownstream(id)
+                }
+            }
+            wakeScheduler?.scheduleNextWake()
         }
     }
 
     override fun cancelAllTasks() {
         onCancelAll?.invoke()
         coroutineScope.launch {
-            db.taskDao().getAllTasks().forEach {
-                db.taskDao().updateTaskState(id = it.id, state = TaskState.CANCELLED)
-            }
+            db.taskDao().cancelAllActiveTasks()
+            wakeScheduler?.scheduleNextWake()
         }
     }
 
     private suspend fun cancelDownstream(parentId: String) {
         db.taskDao().getDependenciesForParent(parentId).forEach { dep ->
-            db.taskDao().updateTaskState(id = dep.childTaskId, state = TaskState.CANCELLED)
-            cancelDownstream(parentId = dep.childTaskId)
+            val updated = db.taskDao().cancelTaskIfActive(dep.childTaskId)
+            if (updated > 0) {
+                cancelDownstream(parentId = dep.childTaskId)
+            }
         }
     }
 }
-
-@Deprecated("Use ChronosTaskCanceller instead", ReplaceWith("ChronosTaskCanceller"))
-internal typealias ChronosWorkCanceller = ChronosTaskCanceller

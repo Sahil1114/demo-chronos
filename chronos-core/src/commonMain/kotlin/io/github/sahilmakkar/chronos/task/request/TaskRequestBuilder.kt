@@ -9,10 +9,13 @@ import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.uuid.Uuid
 
-sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T, B>>(
+/**
+ * Base builder for configuring common parameters of a [TaskRequest].
+ */
+public sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T, B>>(
     private val workerClass: KClass<out TaskWorker>
 ) {
-    protected var id: String = Uuid.random().toHexString()
+    protected var id: String = Uuid.random().toString()
     protected var inputData: TaskData = taskDataOf()
     protected var constraints: EnvironmentConstraints = EnvironmentConstraints()
     protected var initialDelay: Duration = Duration.ZERO
@@ -20,27 +23,27 @@ sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T, B>>(
     protected var backoffPolicy: BackoffPolicy = BackoffPolicy.EXPONENTIAL
     protected var backoffDelay: Duration = Duration.parse("30s")
     protected var maxRetries: Int = 3
-    protected val tags = mutableSetOf<String>()
+    protected val tags: MutableSet<String> = mutableSetOf()
 
     protected abstract fun self(): B
 
-    fun setInputData(inputData: TaskData): B = self().also { this.inputData = inputData }
+    public fun setInputData(inputData: TaskData): B = self().also { this.inputData = inputData }
 
-    fun setConstraints(constraints: EnvironmentConstraints): B =
+    public fun setConstraints(constraints: EnvironmentConstraints): B =
         self().also { this.constraints = constraints }
 
-    fun setInitialDelay(delay: Duration): B = self().also { this.initialDelay = delay }
+    public fun setInitialDelay(delay: Duration): B = self().also { this.initialDelay = delay }
 
-    fun setTimeout(timeout: Duration): B = self().also { this.timeout = timeout }
+    public fun setTimeout(timeout: Duration): B = self().also { this.timeout = timeout }
 
-    fun setBackoffCriteria(policy: BackoffPolicy, initialDelay: Duration, maxRetries: Int): B =
+    public fun setBackoffCriteria(policy: BackoffPolicy, initialDelay: Duration, maxRetries: Int): B =
         self().also {
             this.backoffPolicy = policy
             this.backoffDelay = initialDelay
             this.maxRetries = maxRetries
         }
 
-    fun addTag(tag: String): B = self().also { this.tags.add(tag) }
+    public fun addTag(tag: String): B = self().also { this.tags.add(tag) }
 
     protected val resolvedWorkerClassName: String
         get() = workerClass.qualifiedName
@@ -68,7 +71,7 @@ sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T, B>>(
 
     protected abstract fun construct(): T
 
-    fun build(): T {
+    public fun build(): T {
         validateCommon()
         validateSpecific()
         return construct()

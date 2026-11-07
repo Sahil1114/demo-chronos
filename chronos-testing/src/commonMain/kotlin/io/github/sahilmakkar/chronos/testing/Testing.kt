@@ -16,56 +16,59 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 
-class TestChronos(
-    override val registry: WorkerRegistry = WorkerRegistry(),
+/**
+ * In-memory [Chronos] test implementation for unit and integration testing.
+ */
+public class TestChronos(
+    public override val registry: WorkerRegistry = WorkerRegistry(),
 ) : Chronos {
-    val enqueuedRequests = mutableListOf<TaskRequest>()
+    public val enqueuedRequests: MutableList<TaskRequest> = mutableListOf<TaskRequest>()
     private val taskTags = mutableMapOf<String, Set<String>>()
     private val taskInfos = MutableStateFlow<Map<String, TaskInfo>>(emptyMap())
 
-    override fun enqueue(request: TaskRequest) {
+    public override fun enqueue(request: TaskRequest) {
         enqueuedRequests.add(request)
         taskTags[request.id] = request.tags
         updateTaskInfo(request.id, TaskState.ENQUEUED)
     }
 
-    override fun enqueueUniqueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
+    public override fun enqueueUniqueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
         enqueue(request = request)
     }
 
-    override fun enqueueUniquePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {
+    public override fun enqueueUniquePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {
         enqueue(request = request)
     }
 
-    override fun enqueue(chain: TaskChain) {
+    public override fun enqueue(chain: TaskChain) {
         chain.requests.forEach { enqueue(request = it) }
     }
 
-    override fun cancelTaskById(id: String) {
+    public override fun cancelTaskById(id: String) {
         updateTaskInfo(id = id, state = TaskState.CANCELLED)
     }
 
-    override fun cancelTaskByTag(tag: String) {
+    public override fun cancelTaskByTag(tag: String) {
         val idsToCancel = taskTags.filter { (_, tags) -> tag in tags }.keys
         idsToCancel.forEach { cancelTaskById(it) }
     }
 
-    override fun cancelAllTasks() {
+    public override fun cancelAllTasks() {
         taskInfos.value.keys.forEach { cancelTaskById(id = it) }
     }
 
-    override fun observeTask(id: String): Flow<TaskInfo?> {
+    public override fun observeTask(id: String): Flow<TaskInfo?> {
         return taskInfos.map { it[id] }
     }
 
-    override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> {
+    public override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> {
         return taskInfos.map { map ->
             val matchingIds = taskTags.filter { (_, tags) -> tag in tags }.keys
             matchingIds.mapNotNull { map[it] }
         }
     }
 
-    override suspend fun runPendingTasksNow() {
+    public override suspend fun runPendingTasksNow() {
         val iterator = enqueuedRequests.iterator()
         while (iterator.hasNext()) {
             val req = iterator.next()
@@ -93,7 +96,7 @@ class TestChronos(
         }
     }
 
-    override fun close() {
+    public override fun close() {
         enqueuedRequests.clear()
         taskTags.clear()
         taskInfos.value = emptyMap()

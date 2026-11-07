@@ -1,3 +1,6 @@
 package io.github.sahilmakkar.chronos
 
-expect class PlatformSupport
+/**
+ * Platform-specific support dependency required to initialize Chronos.
+ */
+public expect class PlatformSupport

@@ -17,6 +17,14 @@ import kotlinx.coroutines.SupervisorJob
 
 /**
  * Android platform entry point implementing [Chronos.Companion.initialize].
+ *
+ * Initializes the Room SQLite database on disk (`chronos_work.db`), configures [ChronosWakeScheduler]
+ * backed by Android WorkManager for Option B wake worker triggers, initializes [AndroidConstraintVerifier],
+ * and sets the singleton instance accessible via [Chronos.Companion.instance].
+ *
+ * @param support Platform support containing the Android [android.content.Context].
+ * @param registry Worker registry containing registered worker factories.
+ * @return The initialized [Chronos] engine instance.
  */
 public actual fun Chronos.Companion.initialize(
     support: PlatformSupport,
@@ -27,6 +35,16 @@ public actual fun Chronos.Companion.initialize(
     return impl
 }
 
+/**
+ * Assembles and wires together the Android runtime dependencies for [ChronosEngine].
+ *
+ * Wires the database, coroutine scopes, [ChronosWakeScheduler], [TaskCoordinator],
+ * [Daemon], [ChronosTaskEnqueuer], [ChronosTaskCanceller], and [RoomTaskStore].
+ *
+ * @param support Platform support containing the application context.
+ * @param registry Registered worker mapping.
+ * @return A fully assembled [ChronosEngine].
+ */
 internal fun buildAndroidChronos(
     support: PlatformSupport,
     registry: WorkerRegistry

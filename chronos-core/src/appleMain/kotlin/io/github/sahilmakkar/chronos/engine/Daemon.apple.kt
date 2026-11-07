@@ -7,7 +7,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 /**
- * Apple/iOS background daemon managing task scheduling loops and BGTaskScheduler integration.
+ * Apple/iOS background daemon managing task scheduling loops and Apple `BGTaskScheduler` lifecycle integration.
  */
 internal actual class Daemon actual constructor(
     private val coroutineScope: CoroutineScope,

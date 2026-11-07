@@ -5,7 +5,12 @@ import platform.Network.*
 import platform.darwin.dispatch_get_main_queue
 
 /**
- * iOS network connectivity checker evaluating path reachability.
+ * Apple/iOS network connectivity checker evaluating path reachability via Network framework.
+ *
+ * Utilizes `nw_path_monitor_t` running on the main dispatch queue to observe network path transitions:
+ * - [isConnected]: Evaluates whether `nw_path_get_status` is `nw_path_status_satisfied`.
+ * - [isUnmetered]: Evaluates whether the connection is satisfied and `nw_path_is_expensive` is false
+ *   (i.e. not cellular data or personal hotspot).
  */
 internal class IosNetworkChecker : NetworkChecker {
     private var connected = true
@@ -21,6 +26,17 @@ internal class IosNetworkChecker : NetworkChecker {
         nw_path_monitor_start(monitor)
     }
 
+    /**
+     * Checks if the Apple Network framework path status is currently satisfied.
+     *
+     * @return `true` if connected to an active network interface; `false` otherwise.
+     */
     override fun isConnected(): Boolean = connected
+
+    /**
+     * Checks if the current network path is active and not flagged as expensive (cellular/metered).
+     *
+     * @return `true` if unmetered; `false` otherwise.
+     */
     override fun isUnmetered(): Boolean = connected && !expensive
 }

@@ -27,6 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -450,29 +451,23 @@ class TaskCoordinatorTest {
             val t1 = h.request().toEntity(scheduledAt = h.clock.nowMs).copy(id = "t1")
             testDb.taskDao().insertTask(t1)
 
-            // Start running t1 so it holds the only semaphore permit
             val runJob1 = testScope.launch {
                 testCoordinator.runPendingTasks()
             }
             t1Started.await()
             assertEquals(TaskState.RUNNING, testDb.taskDao().getTask("t1")?.state)
 
-            // Now enqueue t2 while t1 is actively holding the permit
             val t2 = h.request().toEntity(scheduledAt = h.clock.nowMs).copy(id = "t2")
             testDb.taskDao().insertTask(t2)
 
-            // Trigger coordinator for t2 in background
             val runJob2 = testScope.launch {
                 testCoordinator.runPendingTasks()
             }
 
-            // Give runJob2 a moment to discover t2 and block on the semaphore
-            kotlinx.coroutines.delay(100)
+            withContext(Dispatchers.Default) { delay(200) }
 
-            // While waiting for permit, t2 must still be ENQUEUED (not RUNNING)
             assertEquals(TaskState.ENQUEUED, testDb.taskDao().getTask("t2")?.state)
 
-            // Let t1 finish and release permit
             t1Proceed.complete(Unit)
             runJob1.join()
             runJob2.join()

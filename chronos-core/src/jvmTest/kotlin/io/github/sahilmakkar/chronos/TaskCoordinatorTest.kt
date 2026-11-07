@@ -1,6 +1,8 @@
 package io.github.sahilmakkar.chronos
 
 import io.github.sahilmakkar.chronos.executor.InProcessTaskExecutor
+import io.github.sahilmakkar.chronos.scheduler.ChronosTaskCanceller
+import io.github.sahilmakkar.chronos.scheduler.ChronosTaskEnqueuer
 import io.github.sahilmakkar.chronos.storage.mapper.toEntity
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
@@ -9,11 +11,15 @@ import io.github.sahilmakkar.chronos.task.model.fromJson
 import io.github.sahilmakkar.chronos.task.model.taskDataOf
 import io.github.sahilmakkar.chronos.task.model.toJson
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
+import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 import io.github.sahilmakkar.chronos.worker.TaskWorker
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -100,7 +106,8 @@ class TaskCoordinatorTest {
         h.enqueue(req)
 
         h.runPendingTasks()
-        h.db.taskDao().updateRunAttemptCount(req.id, 1)
+        h.clock.advance(10_000L)
+        h.runPendingTasks()
         h.clock.advance(10_000L)
         h.runPendingTasks()
 
@@ -149,6 +156,19 @@ class TaskCoordinatorTest {
         }
     }
 
+    class HangingWorker(data: TaskData) : TaskWorker(data) {
+        override suspend fun doWork(): TaskResult {
+            hangingStarted?.complete(Unit)
+            hangingBlocker?.await()
+            return TaskResult.Success()
+        }
+
+        companion object {
+            var hangingStarted: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+            var hangingBlocker: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+        }
+    }
+
     @Test
     fun `worker not registered marks task failed`() = runTest {
         val registry = WorkerRegistry()
@@ -194,6 +214,73 @@ class TaskCoordinatorTest {
 
         val entity = h.db.taskDao().getTask(req.id)
         assertEquals(TaskState.FAILED, entity?.state)
+        val output = TaskData.fromJson(entity?.outputDataJson ?: "")
+        assertEquals("Task timed out after 50ms", output.getString("error"))
+    }
+
+    @Test
+    fun `closing Chronos while slow worker is running leaves task in enqueued state`() = runTest {
+        val slowStarted = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val slowBlocker = kotlinx.coroutines.CompletableDeferred<Unit>()
+        HangingWorker.hangingStarted = slowStarted
+        HangingWorker.hangingBlocker = slowBlocker
+
+        val tempDb = File.createTempFile("chronos_close_test_", ".db").apply { deleteOnExit() }
+        val testDb = createTestDatabase(tempDb)
+
+        val registry = WorkerRegistry().apply {
+            register(HangingWorker::class.qualifiedName!!) { HangingWorker(it) }
+        }
+        val realExecutor = InProcessTaskExecutor(testDb, registry)
+        val coordinator = io.github.sahilmakkar.chronos.engine.TaskCoordinator(
+            db = testDb,
+            taskExecutor = realExecutor,
+            constraintProvider = h.constraintVerifier,
+            clock = h.clock
+        )
+        val engineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val daemon = io.github.sahilmakkar.chronos.engine.Daemon(
+            coroutineScope = engineScope,
+            coordinator = coordinator,
+            db = testDb
+        )
+        val enqueuer = ChronosTaskEnqueuer(
+            db = testDb,
+            coroutineScope = engineScope,
+            coordinator = coordinator,
+            clock = h.clock
+        )
+        val canceller = ChronosTaskCanceller(
+            db = testDb,
+            coroutineScope = engineScope
+        )
+        val engine = io.github.sahilmakkar.chronos.engine.ChronosEngine(
+            registry = registry,
+            coroutineScope = engineScope,
+            coordinator = coordinator,
+            daemon = daemon,
+            enqueuer = enqueuer,
+            canceller = canceller,
+            taskStore = io.github.sahilmakkar.chronos.storage.RoomTaskStore(testDb.taskDao()),
+            onClose = { testDb.close() }
+        )
+
+        val req = OneTimeTaskRequest.Builder(HangingWorker::class).build()
+        engine.enqueue(req)
+
+        slowStarted.await()
+        assertEquals(TaskState.RUNNING, testDb.taskDao().getTask(req.id)?.state)
+
+        engine.close()
+        engineScope.coroutineContext[kotlinx.coroutines.Job]?.children?.toList()?.forEach { it.join() }
+
+        val dbCheck = createTestDatabase(tempDb)
+        val entity = dbCheck.taskDao().getTask(req.id)
+        assertEquals(TaskState.ENQUEUED, entity?.state)
+        dbCheck.close()
+        tempDb.delete()
+        File("${tempDb.absolutePath}-wal").delete()
+        File("${tempDb.absolutePath}-shm").delete()
     }
 
     @Test
@@ -242,6 +329,25 @@ class TaskCoordinatorTest {
         assertEquals(2, h.executor.executed.size)
         val nextEntity = h.db.taskDao().getTask(req.id)
         assertEquals(TaskState.ENQUEUED, nextEntity?.state)
+    }
+
+    @Test
+    fun `explicit cancelTaskById on periodic task transitions to cancelled and does not run again`() = runTest {
+        val interval = 15.minutes
+        val req = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = interval).build()
+
+        h.enqueue(req)
+        h.cancelTaskById(req.id)
+
+        val entity = h.db.taskDao().getTask(req.id)
+        assertEquals(TaskState.CANCELLED, entity?.state)
+
+        val executedBefore = h.executor.executed.size
+        h.clock.advance(interval.inWholeMilliseconds)
+        h.runPendingTasks()
+
+        assertEquals(executedBefore, h.executor.executed.size)
+        assertEquals(TaskState.CANCELLED, h.db.taskDao().getTask(req.id)?.state)
     }
 
     @Test

@@ -7,7 +7,7 @@ import kotlinx.coroutines.launch
 import platform.BackgroundTasks.*
 import platform.Foundation.*
 
-class IosBackgroundTaskScheduler(
+internal class IosBackgroundTaskScheduler(
     private val coroutineScope: CoroutineScope,
     private val onTaskFired: suspend () -> Unit,
     private val onExpired: suspend () -> Unit

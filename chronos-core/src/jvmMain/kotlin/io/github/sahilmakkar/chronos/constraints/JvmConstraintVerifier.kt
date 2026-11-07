@@ -4,9 +4,12 @@ import io.github.sahilmakkar.chronos.port.NetworkChecker
 import io.github.sahilmakkar.chronos.storage.TaskEntity
 import java.io.File
 
+import kotlin.time.Clock
+
 internal class JvmConstraintVerifier(
     networkChecker: NetworkChecker,
-) : BaseConstraintVerifier(networkChecker) {
+    clock: Clock = Clock.System
+) : BaseConstraintVerifier(networkChecker, clock) {
 
     override fun isSatisfied(entity: TaskEntity): Boolean {
         if (!verifyNetwork(entity)) return false
@@ -18,6 +21,3 @@ internal class JvmConstraintVerifier(
     private fun isStorageNotLow(): Boolean =
         File(System.getProperty("user.home")).usableSpace > 100_000_000L
 }
-
-@Deprecated("Use JvmConstraintVerifier instead", ReplaceWith("JvmConstraintVerifier"))
-internal typealias WorkConstraintVerifier = JvmConstraintVerifier

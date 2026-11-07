@@ -3,7 +3,7 @@ package io.github.sahilmakkar.chronos.processor
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 
-class WorkerProcessor(
+internal class WorkerProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger
 ) : SymbolProcessor {

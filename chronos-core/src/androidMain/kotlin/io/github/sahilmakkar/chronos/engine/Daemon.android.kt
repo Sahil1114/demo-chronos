@@ -1,41 +1,27 @@
 package io.github.sahilmakkar.chronos.engine
 
-import android.util.Log
+import io.github.sahilmakkar.chronos.storage.ChronosDatabase
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-
-private const val POLL_INTERVAL_MS = 1000L
+import kotlin.time.Clock
 
 internal actual class Daemon actual constructor(
     private val coroutineScope: CoroutineScope,
-    private val coordinator: TaskCoordinator
+    private val coordinator: TaskCoordinator,
+    private val db: ChronosDatabase,
+    private val clock: Clock
 ) {
-    private var loopJob: Job? = null
+    private val dueTimeLoop = DueTimeLoop(db, coordinator, clock)
 
     actual fun start() {
-        loopJob = coroutineScope.launch {
+        coroutineScope.launch {
             coordinator.sweepOrphans()
             coordinator.sweepChainRecovery()
-            poll()
         }
-    }
-
-    private suspend fun poll() {
-        while (coroutineScope.isActive) {
-            try {
-                coordinator.runPendingTasks()
-            } catch (e: Exception) {
-                Log.e("ChronosDaemon", "poll failed", e)
-            }
-            delay(POLL_INTERVAL_MS)
-        }
+        dueTimeLoop.start(coroutineScope)
     }
 
     actual fun stop() {
-        loopJob?.cancel()
-        loopJob = null
+        dueTimeLoop.stop()
     }
 }

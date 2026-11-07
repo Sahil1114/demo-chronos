@@ -8,6 +8,7 @@ import io.github.sahilmakkar.chronos.port.NetworkChecker
 import io.github.sahilmakkar.chronos.port.TaskExecutor
 import io.github.sahilmakkar.chronos.scheduler.ChronosTaskCanceller
 import io.github.sahilmakkar.chronos.scheduler.ChronosTaskEnqueuer
+import io.github.sahilmakkar.chronos.scheduler.WakeScheduler
 import io.github.sahilmakkar.chronos.storage.ChronosDatabase
 import io.github.sahilmakkar.chronos.storage.TaskEntity
 import io.github.sahilmakkar.chronos.task.TaskChain
@@ -25,17 +26,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import java.io.File
+import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 
-class FakeClock(var nowMs: Long = 1000L) : Clock {
-    override fun now(): Instant = Instant.fromEpochMilliseconds(nowMs)
-    fun advance(ms: Long) { nowMs += ms }
-}
+import io.github.sahilmakkar.chronos.testing.FakeClock
 
-class FakeTaskExecutor : TaskExecutor {
+internal class FakeTaskExecutor : TaskExecutor {
     val executed: MutableList<String> = java.util.Collections.synchronizedList(mutableListOf())
     private val activeCount = java.util.concurrent.atomic.AtomicInteger(0)
     val peakConcurrency = java.util.concurrent.atomic.AtomicInteger(0)
@@ -53,11 +52,15 @@ class FakeTaskExecutor : TaskExecutor {
     }
 }
 
-class FakeConstraintVerifier(var satisfied: Boolean = true) : ConstraintVerifier {
-    override fun isSatisfied(entity: TaskEntity): Boolean = satisfied
+internal class FakeConstraintVerifier(var satisfied: Boolean = true) : ConstraintVerifier {
+    var checkCount = 0
+    override fun isSatisfied(entity: TaskEntity): Boolean {
+        checkCount++
+        return satisfied
+    }
 }
 
-class FakeNetworkChecker(
+internal class FakeNetworkChecker(
     var connected: Boolean = true,
     var unmetered: Boolean = true
 ) : NetworkChecker {
@@ -65,16 +68,46 @@ class FakeNetworkChecker(
     override fun isUnmetered(): Boolean = unmetered
 }
 
-class DummyWorker(inputData: TaskData) : TaskWorker(inputData) {
+internal class FakeWakeScheduler(
+    private val db: ChronosDatabase,
+    private val clock: Clock = Clock.System
+) : WakeScheduler {
+    var scheduledDelayMs: Long? = null
+    var scheduledCount = 0
+    var cancelled = false
+
+    override suspend fun scheduleNextWake() {
+        val states = listOf(io.github.sahilmakkar.chronos.task.TaskState.ENQUEUED, io.github.sahilmakkar.chronos.task.TaskState.RETRYING)
+        val next = db.taskDao().getNextDueTask(states)
+        if (next == null) {
+            cancelWake()
+            return
+        }
+        val nowMs = clock.now().toEpochMilliseconds()
+        scheduledDelayMs = maxOf(0L, next.scheduledAt - nowMs)
+        cancelled = false
+        scheduledCount++
+    }
+
+    override fun cancelWake() {
+        scheduledDelayMs = null
+        cancelled = true
+    }
+}
+
+internal class DummyWorker(inputData: TaskData) : TaskWorker(inputData) {
     override suspend fun doWork(): TaskResult = TaskResult.Success()
 }
 
-fun createTestDatabase(tempFile: File = File.createTempFile("chronos_test_", ".db")): ChronosDatabase {
+internal fun createTestDatabase(
+    tempFile: File = File.createTempFile("chronos_test_", ".db"),
+    queryCoroutineContext: CoroutineContext = Dispatchers.IO
+): ChronosDatabase {
     tempFile.deleteOnExit()
     return Room.databaseBuilder<ChronosDatabase>(
         name = tempFile.absolutePath
     ).setDriver(BundledSQLiteDriver())
-        .setQueryCoroutineContext(Dispatchers.IO)
+        .setQueryCoroutineContext(queryCoroutineContext)
         .build()
 }
 
@@ -82,15 +115,19 @@ internal class TestHarness(
     val clock: FakeClock = FakeClock(1000L),
     val executor: FakeTaskExecutor = FakeTaskExecutor(),
     val constraintVerifier: FakeConstraintVerifier = FakeConstraintVerifier(),
-    val networkChecker: FakeNetworkChecker = FakeNetworkChecker()
+    val networkChecker: FakeNetworkChecker = FakeNetworkChecker(),
+    val queryCoroutineContext: CoroutineContext = Dispatchers.IO,
+    wakeSchedulerFactory: ((ChronosDatabase) -> WakeScheduler)? = null
 ) {
     val tempFile: File = File.createTempFile("chronos_harness_", ".db").apply { deleteOnExit() }
-    val db: ChronosDatabase = createTestDatabase(tempFile)
+    val db: ChronosDatabase = createTestDatabase(tempFile, queryCoroutineContext)
+    val wakeScheduler: WakeScheduler? = wakeSchedulerFactory?.invoke(db)
     val coordinator: TaskCoordinator = TaskCoordinator(
         db = db,
         taskExecutor = executor,
         constraintProvider = constraintVerifier,
-        clock = clock
+        clock = clock,
+        wakeScheduler = wakeScheduler
     )
     val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     val cancellerScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -98,11 +135,13 @@ internal class TestHarness(
         db = db,
         coroutineScope = scope,
         coordinator = coordinator,
-        clock = clock
+        clock = clock,
+        wakeScheduler = wakeScheduler
     )
     val canceller: ChronosTaskCanceller = ChronosTaskCanceller(
         db = db,
-        coroutineScope = cancellerScope
+        coroutineScope = cancellerScope,
+        wakeScheduler = wakeScheduler
     )
 
     fun request(

@@ -1,0 +1,29 @@
+public final class io/github/sahilmakkar/chronos/testing/FakeClock : kotlin/time/Clock {
+	public fun <init> ()V
+	public fun <init> (J)V
+	public synthetic fun <init> (JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun advance (J)V
+	public final fun getNowMs ()J
+	public fun now ()Lkotlin/time/Instant;
+	public final fun setNowMs (J)V
+}
+
+public final class io/github/sahilmakkar/chronos/testing/TestChronos : io/github/sahilmakkar/chronos/Chronos {
+	public fun <init> ()V
+	public fun <init> (Lio/github/sahilmakkar/chronos/worker/WorkerRegistry;)V
+	public synthetic fun <init> (Lio/github/sahilmakkar/chronos/worker/WorkerRegistry;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun cancelAllTasks ()V
+	public fun cancelTaskById (Ljava/lang/String;)V
+	public fun cancelTaskByTag (Ljava/lang/String;)V
+	public fun close ()V
+	public fun enqueue (Lio/github/sahilmakkar/chronos/task/TaskChain;)V
+	public fun enqueue (Lio/github/sahilmakkar/chronos/task/request/TaskRequest;)V
+	public fun enqueueUniquePeriodicTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/PeriodicTaskRequest;)V
+	public fun enqueueUniqueTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/OneTimeTaskRequest;)V
+	public final fun getEnqueuedRequests ()Ljava/util/List;
+	public fun getRegistry ()Lio/github/sahilmakkar/chronos/worker/WorkerRegistry;
+	public fun observeTask (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;
+	public fun observeTasksByTag (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;
+	public fun runPendingTasksNow (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+

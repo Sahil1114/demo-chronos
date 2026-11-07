@@ -6,7 +6,7 @@ import io.github.sahilmakkar.chronos.PlatformSupport
 import kotlinx.coroutines.Dispatchers
 import java.io.File
 
-actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabase {
+internal actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabase {
     val homeDir = System.getProperty("user.home")
     val dbFile = File(homeDir, ".chronos/chronos_work.db")
     dbFile.parentFile.mkdirs()

@@ -1,0 +1,351 @@
+public abstract interface class io/github/sahilmakkar/chronos/Chronos : java/lang/AutoCloseable {
+	public static final field Companion Lio/github/sahilmakkar/chronos/Chronos$Companion;
+	public abstract fun cancelAllTasks ()V
+	public abstract fun cancelTaskById (Ljava/lang/String;)V
+	public abstract fun cancelTaskByTag (Ljava/lang/String;)V
+	public abstract fun enqueue (Lio/github/sahilmakkar/chronos/task/TaskChain;)V
+	public abstract fun enqueue (Lio/github/sahilmakkar/chronos/task/request/TaskRequest;)V
+	public abstract fun enqueueUniquePeriodicTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/PeriodicTaskRequest;)V
+	public abstract fun enqueueUniqueTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/OneTimeTaskRequest;)V
+	public abstract fun getRegistry ()Lio/github/sahilmakkar/chronos/worker/WorkerRegistry;
+	public abstract fun observeTask (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;
+	public abstract fun observeTasksByTag (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;
+	public abstract fun runPendingTasksNow (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/github/sahilmakkar/chronos/Chronos$Companion {
+}
+
+public final class io/github/sahilmakkar/chronos/ChronosKt {
+	public static final fun beginWith (Lio/github/sahilmakkar/chronos/Chronos;Lio/github/sahilmakkar/chronos/task/request/TaskRequest;)Lio/github/sahilmakkar/chronos/task/TaskChain;
+	public static final fun getInstance (Lio/github/sahilmakkar/chronos/Chronos$Companion;)Lio/github/sahilmakkar/chronos/Chronos;
+	public static final fun setForTesting (Lio/github/sahilmakkar/chronos/Chronos$Companion;Lio/github/sahilmakkar/chronos/Chronos;)V
+	public static final fun shutdown (Lio/github/sahilmakkar/chronos/Chronos$Companion;)V
+}
+
+public final class io/github/sahilmakkar/chronos/ChronosWakeWorker : androidx/work/CoroutineWorker {
+	public fun <init> (Landroid/content/Context;Landroidx/work/WorkerParameters;)V
+	public fun doWork (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/github/sahilmakkar/chronos/Chronos_androidKt {
+	public static final fun initialize (Lio/github/sahilmakkar/chronos/Chronos$Companion;Lio/github/sahilmakkar/chronos/PlatformSupport;Lio/github/sahilmakkar/chronos/worker/WorkerRegistry;)Lio/github/sahilmakkar/chronos/Chronos;
+}
+
+public final class io/github/sahilmakkar/chronos/PlatformSupport {
+	public fun <init> (Landroid/content/Context;)V
+	public final fun getContext ()Landroid/content/Context;
+}
+
+public abstract interface annotation class io/github/sahilmakkar/chronos/RegisterWorker : java/lang/annotation/Annotation {
+	public abstract fun factory ()Ljava/lang/Class;
+}
+
+public final class io/github/sahilmakkar/chronos/task/TaskChain {
+	public static final field Companion Lio/github/sahilmakkar/chronos/task/TaskChain$Companion;
+	public fun <init> (Ljava/util/List;Ljava/util/List;)V
+	public final fun getFailurePolicies ()Ljava/util/List;
+	public final fun getRequests ()Ljava/util/List;
+	public final fun then (Lio/github/sahilmakkar/chronos/task/request/TaskRequest;Lio/github/sahilmakkar/chronos/task/policy/DependentTaskPolicy;)Lio/github/sahilmakkar/chronos/task/TaskChain;
+	public static synthetic fun then$default (Lio/github/sahilmakkar/chronos/task/TaskChain;Lio/github/sahilmakkar/chronos/task/request/TaskRequest;Lio/github/sahilmakkar/chronos/task/policy/DependentTaskPolicy;ILjava/lang/Object;)Lio/github/sahilmakkar/chronos/task/TaskChain;
+}
+
+public final class io/github/sahilmakkar/chronos/task/TaskChain$Companion {
+	public final fun start (Lio/github/sahilmakkar/chronos/task/request/TaskRequest;)Lio/github/sahilmakkar/chronos/task/TaskChain;
+}
+
+public abstract class io/github/sahilmakkar/chronos/task/TaskResult {
+}
+
+public final class io/github/sahilmakkar/chronos/task/TaskResult$Failure : io/github/sahilmakkar/chronos/task/TaskResult {
+	public fun <init> ()V
+	public fun <init> (Lio/github/sahilmakkar/chronos/task/model/TaskData;)V
+	public synthetic fun <init> (Lio/github/sahilmakkar/chronos/task/model/TaskData;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public final fun copy (Lio/github/sahilmakkar/chronos/task/model/TaskData;)Lio/github/sahilmakkar/chronos/task/TaskResult$Failure;
+	public static synthetic fun copy$default (Lio/github/sahilmakkar/chronos/task/TaskResult$Failure;Lio/github/sahilmakkar/chronos/task/model/TaskData;ILjava/lang/Object;)Lio/github/sahilmakkar/chronos/task/TaskResult$Failure;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOutputData ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/sahilmakkar/chronos/task/TaskResult$Retry : io/github/sahilmakkar/chronos/task/TaskResult {
+	public static final field INSTANCE Lio/github/sahilmakkar/chronos/task/TaskResult$Retry;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/sahilmakkar/chronos/task/TaskResult$Success : io/github/sahilmakkar/chronos/task/TaskResult {
+	public fun <init> ()V
+	public fun <init> (Lio/github/sahilmakkar/chronos/task/model/TaskData;)V
+	public synthetic fun <init> (Lio/github/sahilmakkar/chronos/task/model/TaskData;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public final fun copy (Lio/github/sahilmakkar/chronos/task/model/TaskData;)Lio/github/sahilmakkar/chronos/task/TaskResult$Success;
+	public static synthetic fun copy$default (Lio/github/sahilmakkar/chronos/task/TaskResult$Success;Lio/github/sahilmakkar/chronos/task/model/TaskData;ILjava/lang/Object;)Lio/github/sahilmakkar/chronos/task/TaskResult$Success;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOutputData ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/sahilmakkar/chronos/task/TaskState : java/lang/Enum {
+	public static final field CANCELLED Lio/github/sahilmakkar/chronos/task/TaskState;
+	public static final field ENQUEUED Lio/github/sahilmakkar/chronos/task/TaskState;
+	public static final field FAILED Lio/github/sahilmakkar/chronos/task/TaskState;
+	public static final field RETRYING Lio/github/sahilmakkar/chronos/task/TaskState;
+	public static final field RUNNING Lio/github/sahilmakkar/chronos/task/TaskState;
+	public static final field SUCCEEDED Lio/github/sahilmakkar/chronos/task/TaskState;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/github/sahilmakkar/chronos/task/TaskState;
+	public static fun values ()[Lio/github/sahilmakkar/chronos/task/TaskState;
+}
+
+public abstract interface annotation class io/github/sahilmakkar/chronos/task/constraints/BestEffortOnIOS : java/lang/annotation/Annotation {
+	public abstract fun message ()Ljava/lang/String;
+}
+
+public abstract interface annotation class io/github/sahilmakkar/chronos/task/constraints/BestEffortOnJVM : java/lang/annotation/Annotation {
+	public abstract fun message ()Ljava/lang/String;
+}
+
+public final class io/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints {
+	public fun <init> ()V
+	public fun <init> (Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;ZZZZLio/github/sahilmakkar/chronos/task/constraints/TimeWindow;)V
+	public synthetic fun <init> (Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;ZZZZLio/github/sahilmakkar/chronos/task/constraints/TimeWindow;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun component5 ()Z
+	public final fun component6 ()Lio/github/sahilmakkar/chronos/task/constraints/TimeWindow;
+	public final fun copy (Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;ZZZZLio/github/sahilmakkar/chronos/task/constraints/TimeWindow;)Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;
+	public static synthetic fun copy$default (Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;ZZZZLio/github/sahilmakkar/chronos/task/constraints/TimeWindow;ILjava/lang/Object;)Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAllowedTimeWindow ()Lio/github/sahilmakkar/chronos/task/constraints/TimeWindow;
+	public final fun getRequiredNetworkType ()Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;
+	public final fun getRequiresBatteryNotLow ()Z
+	public final fun getRequiresCharging ()Z
+	public final fun getRequiresDeviceIdle ()Z
+	public final fun getRequiresStorageNotLow ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints$Builder {
+	public fun <init> ()V
+	public final fun build ()Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;
+	public final fun setAllowedTimeWindow (Lio/github/sahilmakkar/chronos/task/constraints/TimeWindow;)Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints$Builder;
+	public final fun setRequiredNetworkType (Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;)Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints$Builder;
+	public final fun setRequiresBatteryNotLow (Z)Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints$Builder;
+	public final fun setRequiresCharging (Z)Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints$Builder;
+	public final fun setRequiresDeviceIdle (Z)Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints$Builder;
+	public final fun setRequiresStorageNotLow (Z)Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints$Builder;
+}
+
+public final class io/github/sahilmakkar/chronos/task/constraints/NetworkType : java/lang/Enum {
+	public static final field CONNECTED Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;
+	public static final field NOT_REQUIRED Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;
+	public static final field UNMETERED Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;
+	public static fun values ()[Lio/github/sahilmakkar/chronos/task/constraints/NetworkType;
+}
+
+public final class io/github/sahilmakkar/chronos/task/constraints/TimeWindow {
+	public fun <init> (IILjava/lang/String;)V
+	public synthetic fun <init> (IILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()Ljava/lang/String;
+	public final fun contains (Lkotlin/time/Instant;)Z
+	public final fun copy (IILjava/lang/String;)Lio/github/sahilmakkar/chronos/task/constraints/TimeWindow;
+	public static synthetic fun copy$default (Lio/github/sahilmakkar/chronos/task/constraints/TimeWindow;IILjava/lang/String;ILjava/lang/Object;)Lio/github/sahilmakkar/chronos/task/constraints/TimeWindow;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEndHour ()I
+	public final fun getStartHour ()I
+	public final fun getTimeZone ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/sahilmakkar/chronos/task/model/TaskData {
+	public static final field Companion Lio/github/sahilmakkar/chronos/task/model/TaskData$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Map;
+	public final fun copy (Ljava/util/Map;)Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public static synthetic fun copy$default (Lio/github/sahilmakkar/chronos/task/model/TaskData;Ljava/util/Map;ILjava/lang/Object;)Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBoolean (Ljava/lang/String;Z)Z
+	public final fun getDouble (Ljava/lang/String;D)D
+	public final fun getInt (Ljava/lang/String;I)I
+	public final fun getLong (Ljava/lang/String;J)J
+	public final fun getSize ()I
+	public final fun getString (Ljava/lang/String;)Ljava/lang/String;
+	public final fun getValues ()Ljava/util/Map;
+	public fun hashCode ()I
+	public final fun isEmpty ()Z
+	public final fun isNotEmpty ()Z
+	public final fun toMap ()Ljava/util/Map;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/sahilmakkar/chronos/task/model/TaskData$Companion {
+}
+
+public final class io/github/sahilmakkar/chronos/task/model/TaskDataKt {
+	public static final fun taskDataOf ([Lkotlin/Pair;)Lio/github/sahilmakkar/chronos/task/model/TaskData;
+}
+
+public final class io/github/sahilmakkar/chronos/task/model/TaskInfo {
+	public fun <init> (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/TaskState;Lio/github/sahilmakkar/chronos/task/model/TaskData;Lio/github/sahilmakkar/chronos/task/model/TaskData;I)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lio/github/sahilmakkar/chronos/task/TaskState;
+	public final fun component3 ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public final fun component4 ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public final fun component5 ()I
+	public final fun copy (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/TaskState;Lio/github/sahilmakkar/chronos/task/model/TaskData;Lio/github/sahilmakkar/chronos/task/model/TaskData;I)Lio/github/sahilmakkar/chronos/task/model/TaskInfo;
+	public static synthetic fun copy$default (Lio/github/sahilmakkar/chronos/task/model/TaskInfo;Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/TaskState;Lio/github/sahilmakkar/chronos/task/model/TaskData;Lio/github/sahilmakkar/chronos/task/model/TaskData;IILjava/lang/Object;)Lio/github/sahilmakkar/chronos/task/model/TaskInfo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getOutputData ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public final fun getProgress ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public final fun getRunAttemptCount ()I
+	public final fun getState ()Lio/github/sahilmakkar/chronos/task/TaskState;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/sahilmakkar/chronos/task/policy/BackoffPolicy : java/lang/Enum {
+	public static final field EXPONENTIAL Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;
+	public static final field LINEAR Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;
+	public static fun values ()[Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;
+}
+
+public final class io/github/sahilmakkar/chronos/task/policy/DependentTaskPolicy : java/lang/Enum {
+	public static final field CONTINUE_ON_FAILURE Lio/github/sahilmakkar/chronos/task/policy/DependentTaskPolicy;
+	public static final field STOP_ON_FAILURE Lio/github/sahilmakkar/chronos/task/policy/DependentTaskPolicy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/github/sahilmakkar/chronos/task/policy/DependentTaskPolicy;
+	public static fun values ()[Lio/github/sahilmakkar/chronos/task/policy/DependentTaskPolicy;
+}
+
+public final class io/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy : java/lang/Enum {
+	public static final field APPEND Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;
+	public static final field KEEP Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;
+	public static final field REPLACE Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;
+	public static fun values ()[Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;
+}
+
+public final class io/github/sahilmakkar/chronos/task/request/OneTimeTaskRequest : io/github/sahilmakkar/chronos/task/request/TaskRequest {
+	public fun getBackoffDelay-UwyO8pc ()J
+	public fun getBackoffPolicy ()Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;
+	public fun getConstraints ()Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;
+	public fun getId ()Ljava/lang/String;
+	public fun getInitialDelay-UwyO8pc ()J
+	public fun getMaxRetries ()I
+	public fun getRepeatInterval-FghU774 ()Lkotlin/time/Duration;
+	public fun getTags ()Ljava/util/Set;
+	public fun getTaskData ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public fun getTimeout-FghU774 ()Lkotlin/time/Duration;
+	public fun getWorkerClassName ()Ljava/lang/String;
+	public fun isPeriodic ()Z
+}
+
+public final class io/github/sahilmakkar/chronos/task/request/OneTimeTaskRequest$Builder : io/github/sahilmakkar/chronos/task/request/TaskRequestBuilder {
+	public fun <init> (Lkotlin/reflect/KClass;)V
+	public synthetic fun construct ()Lio/github/sahilmakkar/chronos/task/request/TaskRequest;
+	public synthetic fun self ()Lio/github/sahilmakkar/chronos/task/request/TaskRequestBuilder;
+}
+
+public final class io/github/sahilmakkar/chronos/task/request/PeriodicTaskRequest : io/github/sahilmakkar/chronos/task/request/TaskRequest {
+	public fun getBackoffDelay-UwyO8pc ()J
+	public fun getBackoffPolicy ()Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;
+	public fun getConstraints ()Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;
+	public fun getId ()Ljava/lang/String;
+	public fun getInitialDelay-UwyO8pc ()J
+	public fun getMaxRetries ()I
+	public synthetic fun getRepeatInterval-FghU774 ()Lkotlin/time/Duration;
+	public fun getRepeatInterval-UwyO8pc ()J
+	public fun getTags ()Ljava/util/Set;
+	public fun getTaskData ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public fun getTimeout-FghU774 ()Lkotlin/time/Duration;
+	public fun getWorkerClassName ()Ljava/lang/String;
+	public fun isPeriodic ()Z
+}
+
+public final class io/github/sahilmakkar/chronos/task/request/PeriodicTaskRequest$Builder : io/github/sahilmakkar/chronos/task/request/TaskRequestBuilder {
+	public synthetic fun <init> (Lkotlin/reflect/KClass;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun construct ()Lio/github/sahilmakkar/chronos/task/request/TaskRequest;
+	public synthetic fun self ()Lio/github/sahilmakkar/chronos/task/request/TaskRequestBuilder;
+}
+
+public abstract class io/github/sahilmakkar/chronos/task/request/TaskRequest {
+	public abstract fun getBackoffDelay-UwyO8pc ()J
+	public abstract fun getBackoffPolicy ()Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;
+	public abstract fun getConstraints ()Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;
+	public abstract fun getId ()Ljava/lang/String;
+	public abstract fun getInitialDelay-UwyO8pc ()J
+	public abstract fun getMaxRetries ()I
+	public abstract fun getRepeatInterval-FghU774 ()Lkotlin/time/Duration;
+	public abstract fun getTags ()Ljava/util/Set;
+	public abstract fun getTaskData ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public abstract fun getTimeout-FghU774 ()Lkotlin/time/Duration;
+	public abstract fun getWorkerClassName ()Ljava/lang/String;
+	public abstract fun isPeriodic ()Z
+}
+
+public abstract class io/github/sahilmakkar/chronos/task/request/TaskRequestBuilder {
+	public synthetic fun <init> (Lkotlin/reflect/KClass;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun addTag (Ljava/lang/String;)Lio/github/sahilmakkar/chronos/task/request/TaskRequestBuilder;
+	public final fun build ()Lio/github/sahilmakkar/chronos/task/request/TaskRequest;
+	protected abstract fun construct ()Lio/github/sahilmakkar/chronos/task/request/TaskRequest;
+	protected final fun getBackoffDelay-UwyO8pc ()J
+	protected final fun getBackoffPolicy ()Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;
+	protected final fun getConstraints ()Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;
+	protected final fun getId ()Ljava/lang/String;
+	protected final fun getInitialDelay-UwyO8pc ()J
+	protected final fun getInputData ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	protected final fun getMaxRetries ()I
+	protected final fun getResolvedWorkerClassName ()Ljava/lang/String;
+	protected final fun getTags ()Ljava/util/Set;
+	protected final fun getTimeout-FghU774 ()Lkotlin/time/Duration;
+	protected abstract fun self ()Lio/github/sahilmakkar/chronos/task/request/TaskRequestBuilder;
+	public final fun setBackoffCriteria-8Mi8wO0 (Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;JI)Lio/github/sahilmakkar/chronos/task/request/TaskRequestBuilder;
+	protected final fun setBackoffDelay-LRDsOJo (J)V
+	protected final fun setBackoffPolicy (Lio/github/sahilmakkar/chronos/task/policy/BackoffPolicy;)V
+	public final fun setConstraints (Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;)Lio/github/sahilmakkar/chronos/task/request/TaskRequestBuilder;
+	protected final fun setConstraints (Lio/github/sahilmakkar/chronos/task/constraints/EnvironmentConstraints;)V
+	protected final fun setId (Ljava/lang/String;)V
+	public final fun setInitialDelay-LRDsOJo (J)Lio/github/sahilmakkar/chronos/task/request/TaskRequestBuilder;
+	protected final fun setInitialDelay-LRDsOJo (J)V
+	public final fun setInputData (Lio/github/sahilmakkar/chronos/task/model/TaskData;)Lio/github/sahilmakkar/chronos/task/request/TaskRequestBuilder;
+	protected final fun setInputData (Lio/github/sahilmakkar/chronos/task/model/TaskData;)V
+	protected final fun setMaxRetries (I)V
+	protected final fun setTimeout-BwNAW2A (Lkotlin/time/Duration;)V
+	public final fun setTimeout-LRDsOJo (J)Lio/github/sahilmakkar/chronos/task/request/TaskRequestBuilder;
+	protected fun validateSpecific ()V
+}
+
+public abstract class io/github/sahilmakkar/chronos/worker/TaskWorker {
+	public fun <init> ()V
+	public fun <init> (Lio/github/sahilmakkar/chronos/task/model/TaskData;)V
+	public synthetic fun <init> (Lio/github/sahilmakkar/chronos/task/model/TaskData;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public abstract fun doWork (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getInputData ()Lio/github/sahilmakkar/chronos/task/model/TaskData;
+	public final fun setProgress (Lio/github/sahilmakkar/chronos/task/model/TaskData;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/github/sahilmakkar/chronos/worker/WorkerRegistry {
+	public fun <init> ()V
+	public final fun createWorker (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/model/TaskData;)Lio/github/sahilmakkar/chronos/worker/TaskWorker;
+	public final fun register (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+}
+

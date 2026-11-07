@@ -35,9 +35,19 @@ Modeled after modern declarative work scheduling principles, Chronos gives you a
 | Subsystem | Android | iOS / Apple | JVM Desktop |
 | :--- | :--- | :--- | :--- |
 | **Persistence** | Room 3 KMP (`SQLite`) | Room 3 KMP (`SQLite`) | Room 3 KMP (`SQLite`) |
-| **Task Execution** | Dispatched to native Android `WorkManager` | Coroutine worker execution | Coroutine worker execution |
-| **Background Trigger** | `WorkManager` & 1s Daemon Loop | Apple `BGTaskScheduler` (`BGAppRefreshTask`) | 1s Coroutine Polling Daemon |
+| **Task Execution** | In-process coroutines (`InProcessTaskExecutor`) | In-process coroutines (`InProcessTaskExecutor`) | In-process coroutines (`InProcessTaskExecutor`) |
+| **Background Trigger** | `ChronosWakeWorker` (WorkManager) & `DueTimeLoop` | Apple `BGTaskScheduler` (`BGAppRefreshTask`) & `DueTimeLoop` | `DueTimeLoop` Coroutine Daemon |
 | **Network Checker** | `ConnectivityManager` | `NWPathMonitor` | Java `NetworkInterface` |
+
+---
+
+## Architecture & Singleton Pattern
+
+Chronos maintains a process-wide singleton accessed via `Chronos.instance`:
+- **`Chronos.initialize(support, registry)`**: Configures and starts the process singleton. On Android, call this in `Application.onCreate()`.
+- **`Chronos.instance`**: Provides global access to enqueue tasks, observe task statuses, and cancel work. This is essential on Android because background triggers like `ChronosWakeWorker` run when the process is woken by `WorkManager` and need to access the engine without dependency injection frameworks.
+- **`Chronos.shutdown()`**: Shuts down the active daemon, closes database connections, and cancels active coroutine scopes.
+- **`Chronos.setForTesting(instance)`**: Replaces the singleton instance with a test harness (e.g. `TestChronos`) for unit and integration testing.
 
 ---
 
@@ -57,12 +67,35 @@ Chronos.initialize(PlatformSupport(context = applicationContext), registry)
 ```
 
 #### Apple (iOS)
-```kotlin
-// In Swift AppDelegate / iOS Application lifecycle:
-val registry = WorkerRegistry().apply {
-    register("com.example.SyncWorker") { inputData -> SyncWorker(inputData) }
+In your Swift application initialization:
+```swift
+import ComposeApp
+
+@main
+struct iOSApp: App {
+    init() {
+        MainViewControllerKt.initChronos()
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
 }
-Chronos.initialize(PlatformSupport, registry)
+```
+
+In your iOS `Info.plist`, configure `BGTaskSchedulerPermittedIdentifiers` and background execution modes:
+```xml
+<key>BGTaskSchedulerPermittedIdentifiers</key>
+<array>
+    <string>io.github.sahilmakkar.chronos.bg_task</string>
+</array>
+<key>UIBackgroundModes</key>
+<array>
+    <string>fetch</string>
+    <string>processing</string>
+</array>
 ```
 
 #### JVM Desktop
@@ -237,6 +270,27 @@ Chronos.instance.cancelTaskByTag("sync_jobs")
 // Cancel all scheduled and active work
 Chronos.instance.cancelAllTasks()
 ```
+
+---
+
+## Testing
+
+### Unit and Integration Tests
+Use `Chronos.setForTesting(...)` with `TestChronos` from `:chronos-testing` to verify application scheduling logic in unit tests:
+```kotlin
+val testHarness = TestChronos()
+Chronos.setForTesting(testHarness)
+```
+
+### Manual Process-Death Verification (Android)
+To verify surviving Android process death:
+1. In the sample app, enqueue a Retry or delayed task with a 30-second backoff or delay.
+2. Force-stop the application process via adb:
+   ```shell
+   adb shell am force-stop io.github.sahilmakkar.chronos.sample
+   ```
+3. Wait 30 seconds for the WorkManager `ChronosWakeWorker` trigger.
+4. Check logcat or reopen the sample app to confirm that the scheduled task ran successfully to completion.
 
 ---
 

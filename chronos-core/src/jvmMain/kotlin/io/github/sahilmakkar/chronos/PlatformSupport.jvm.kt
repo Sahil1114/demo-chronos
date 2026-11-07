@@ -1,3 +1,6 @@
 package io.github.sahilmakkar.chronos
 
-actual class PlatformSupport{}
+/**
+ * JVM platform support.
+ */
+public actual class PlatformSupport public constructor()

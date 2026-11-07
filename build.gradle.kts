@@ -8,4 +8,9 @@ plugins {
     alias(libs.plugins.room) apply false
     alias(libs.plugins.jetbrainsCompose) apply false
     alias(libs.plugins.mavenPublish) apply false
+    alias(libs.plugins.binaryCompatibilityValidator)
+}
+
+apiValidation {
+    ignoredProjects.add("sample")
 }

@@ -11,7 +11,7 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
 @OptIn(ExperimentalForeignApi::class)
-actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabase {
+internal actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabase {
     val documentDirectory = NSFileManager.defaultManager.URLForDirectory(
         directory = NSDocumentDirectory,
         inDomain = NSUserDomainMask,

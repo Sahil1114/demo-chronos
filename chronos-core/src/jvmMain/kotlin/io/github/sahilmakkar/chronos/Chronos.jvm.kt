@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-actual fun Chronos.Companion.initialize(
+public actual fun Chronos.Companion.initialize(
     support: PlatformSupport,
     registry: WorkerRegistry
 ): Chronos {
@@ -35,7 +35,7 @@ internal fun buildJvmChronos(support: PlatformSupport, registry: WorkerRegistry)
         constraintProvider = constraintVerifier,
         taskExecutor = taskExecutor
     )
-    val daemon = Daemon(coroutineScope = coroutineScope, coordinator = coordinator)
+    val daemon = Daemon(coroutineScope = coroutineScope, coordinator = coordinator, db = db)
     val enqueuer = ChronosTaskEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
     val canceller = ChronosTaskCanceller(db = db, coroutineScope = coroutineScope)
     val taskStore = RoomTaskStore(db.taskDao())
@@ -48,6 +48,6 @@ internal fun buildJvmChronos(support: PlatformSupport, registry: WorkerRegistry)
         enqueuer = enqueuer,
         canceller = canceller,
         taskStore = taskStore,
-        db = db
+        onClose = { db.close() }
     )
 }

@@ -15,7 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-actual fun Chronos.Companion.initialize(
+public actual fun Chronos.Companion.initialize(
     support: PlatformSupport,
     registry: WorkerRegistry
 ): Chronos {
@@ -46,6 +46,7 @@ internal fun buildIosChronos(support: PlatformSupport, registry: WorkerRegistry)
     val daemon = Daemon(
         coroutineScope = coroutineScope,
         coordinator = coordinator,
+        db = db,
         scheduler = bgTaskScheduler
     )
     val enqueuer = ChronosTaskEnqueuer(
@@ -65,6 +66,6 @@ internal fun buildIosChronos(support: PlatformSupport, registry: WorkerRegistry)
         enqueuer = enqueuer,
         canceller = canceller,
         taskStore = taskStore,
-        db = db
+        onClose = { db.close() }
     )
 }

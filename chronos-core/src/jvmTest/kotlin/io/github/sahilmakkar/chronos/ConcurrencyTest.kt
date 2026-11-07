@@ -57,7 +57,7 @@ class ConcurrencyTest {
         }
 
         pollerActive = false
-        pollerJob.cancel()
+        pollerJob.join()
         h.scope.coroutineContext[Job]?.children?.toList()?.forEach { it.join() }
         h.runPendingTasks()
 

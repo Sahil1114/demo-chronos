@@ -56,6 +56,3 @@ internal class InProcessTaskExecutor(
         }
     }
 }
-
-@Deprecated("Use InProcessTaskExecutor instead", ReplaceWith("InProcessTaskExecutor"))
-internal typealias WorkTaskExecutor = InProcessTaskExecutor

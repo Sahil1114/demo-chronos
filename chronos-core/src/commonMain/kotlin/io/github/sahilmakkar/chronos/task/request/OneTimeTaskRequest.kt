@@ -7,7 +7,10 @@ import io.github.sahilmakkar.chronos.worker.TaskWorker
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
-class OneTimeTaskRequest internal constructor(
+/**
+ * Task request executed once when its conditions and scheduled time are satisfied.
+ */
+public class OneTimeTaskRequest internal constructor(
     override val id: String,
     override val workerClassName: String,
     override val taskData: TaskData,
@@ -22,7 +25,10 @@ class OneTimeTaskRequest internal constructor(
     override val isPeriodic: Boolean = false
     override val repeatInterval: Duration? = null
 
-    class Builder(workerClass: KClass<out TaskWorker>) :
+    /**
+     * Builder for constructing a [OneTimeTaskRequest].
+     */
+    public class Builder(workerClass: KClass<out TaskWorker>) :
         TaskRequestBuilder<OneTimeTaskRequest, Builder>(workerClass) {
 
         override fun self(): Builder = this

@@ -11,7 +11,8 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 internal abstract class BaseConstraintVerifier(
-    private val networkChecker: NetworkChecker? = null
+    private val networkChecker: NetworkChecker? = null,
+    private val clock: Clock = Clock.System
 ) : ConstraintVerifier {
 
     protected fun verifyNetwork(entity: TaskEntity): Boolean {
@@ -29,19 +30,8 @@ internal abstract class BaseConstraintVerifier(
         val end = entity.windowEndHour ?: return true
         val timeZone = entity.windowTimeZone ?: return true
         return runCatching {
-            isInsideTimeWindow(
-                window = TimeWindow(startHour = start, endHour = end, timeZone = timeZone),
-                now = Clock.System.now()
-            )
+            TimeWindow(startHour = start, endHour = end, timeZone = timeZone)
+                .contains(clock.now())
         }.getOrDefault(false)
-    }
-
-    private fun isInsideTimeWindow(window: TimeWindow, now: Instant): Boolean {
-        val hour = now.toLocalDateTime(TimeZone.of(window.timeZone)).hour
-        return if (window.startHour <= window.endHour) {
-            hour in window.startHour until window.endHour
-        } else {
-            hour >= window.startHour || hour < window.endHour
-        }
     }
 }

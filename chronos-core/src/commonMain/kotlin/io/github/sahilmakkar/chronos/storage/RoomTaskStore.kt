@@ -16,6 +16,3 @@ internal class RoomTaskStore(
     override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> =
         dao.observeTasksByTag(tag).map { list -> list.map { it.toTaskInfo() } }
 }
-
-@Deprecated("Use RoomTaskStore instead", ReplaceWith("RoomTaskStore"))
-internal typealias RoomWorkInfoStore = RoomTaskStore

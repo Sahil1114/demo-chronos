@@ -3,11 +3,23 @@ package io.github.sahilmakkar.chronos.task
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.taskDataOf
 
-sealed class TaskResult {
+/**
+ * Result returned by a [io.github.sahilmakkar.chronos.worker.TaskWorker] upon completing execution.
+ */
+public sealed class TaskResult {
 
-    data class Success(val outputData: TaskData = taskDataOf()) : TaskResult()
+    /**
+     * Successful completion, optionally carrying output data.
+     */
+    public data class Success(public val outputData: TaskData = taskDataOf()) : TaskResult()
 
-    data class Failure(val outputData: TaskData = taskDataOf()) : TaskResult()
+    /**
+     * Permanent failure, optionally carrying error diagnostic data.
+     */
+    public data class Failure(public val outputData: TaskData = taskDataOf()) : TaskResult()
 
-    object Retry : TaskResult()
+    /**
+     * Transient failure indicating that the task should be retried per backoff policy.
+     */
+    public data object Retry : TaskResult()
 }

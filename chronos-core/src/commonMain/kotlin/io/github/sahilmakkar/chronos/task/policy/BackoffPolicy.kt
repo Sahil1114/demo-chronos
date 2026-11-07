@@ -3,7 +3,7 @@ package io.github.sahilmakkar.chronos.task.policy
 /**
  * Specifies the policy for calculating delays when retrying failed tasks.
  */
-enum class BackoffPolicy {
+public enum class BackoffPolicy {
     /**
      * Linear delay increase: backoffDelay * attempt.
      */
@@ -14,7 +14,7 @@ enum class BackoffPolicy {
      */
     EXPONENTIAL;
 
-    fun calculateDelay(initialDelayMs: Long, attempt: Int): Long {
+    internal fun calculateDelay(initialDelayMs: Long, attempt: Int): Long {
         if (attempt <= 0 || initialDelayMs <= 0) return 0L
         return when (this) {
             LINEAR -> {

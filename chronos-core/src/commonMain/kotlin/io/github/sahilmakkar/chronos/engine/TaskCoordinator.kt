@@ -2,6 +2,7 @@ package io.github.sahilmakkar.chronos.engine
 
 import io.github.sahilmakkar.chronos.port.ConstraintVerifier
 import io.github.sahilmakkar.chronos.port.TaskExecutor
+import io.github.sahilmakkar.chronos.scheduler.WakeScheduler
 import io.github.sahilmakkar.chronos.storage.ChronosDatabase
 import io.github.sahilmakkar.chronos.storage.TaskEntity
 import io.github.sahilmakkar.chronos.task.TaskResult
@@ -15,8 +16,12 @@ import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
@@ -26,7 +31,8 @@ internal class TaskCoordinator(
     private val taskExecutor: TaskExecutor,
     private val constraintProvider: ConstraintVerifier,
     private val clock: Clock = Clock.System,
-    private val maxConcurrentTasks: Int = 4
+    private val maxConcurrentTasks: Int = 4,
+    private val wakeScheduler: WakeScheduler? = null
 ) {
 
     private val semaphore = Semaphore(maxConcurrentTasks)
@@ -64,8 +70,10 @@ internal class TaskCoordinator(
         }
     }
 
-    suspend fun runPendingTasks() {
+    suspend fun runPendingTasks(): Int {
+        var totalExecuted = 0
         while (true) {
+            currentCoroutineContext().ensureActive()
             val nowMs = clock.now().toEpochMilliseconds()
             val pending = db.taskDao().getTasksByState(TaskState.ENQUEUED) +
                     db.taskDao().getTasksByState(TaskState.RETRYING)
@@ -74,39 +82,43 @@ internal class TaskCoordinator(
                 entity.scheduledAt <= nowMs &&
                         resolveDependencies(entity = entity) &&
                         constraintProvider.isSatisfied(entity)
-            }
+            }.sortedBy { it.scheduledAt }
 
             if (eligible.isEmpty()) {
                 break
             }
 
-            var claimedAny = false
+            var claimedInPass = 0
+            val passMutex = Mutex()
             coroutineScope {
                 for (entity in eligible) {
-                    val claimed = db.taskDao().claim(
-                        id = entity.id,
-                        running = TaskState.RUNNING,
-                        claimable = listOf(TaskState.ENQUEUED, TaskState.RETRYING)
-                    )
-                    if (claimed == 0) continue
-
-                    claimedAny = true
-                    val attemptCount = entity.runAttemptCount + 1
-                    db.taskDao().updateRunAttemptCount(id = entity.id, count = attemptCount)
-                    val runningEntity = entity.copy(state = TaskState.RUNNING, runAttemptCount = attemptCount)
-
                     launch {
                         semaphore.withPermit {
+                            val claimed = db.taskDao().claim(
+                                id = entity.id,
+                                running = TaskState.RUNNING,
+                                claimable = listOf(TaskState.ENQUEUED, TaskState.RETRYING)
+                            )
+                            if (claimed == 0) return@withPermit
+
+                            passMutex.withLock { claimedInPass++ }
+                            val attemptCount = entity.runAttemptCount + 1
+                            db.taskDao().updateRunAttemptCount(id = entity.id, count = attemptCount)
+                            val runningEntity = entity.copy(state = TaskState.RUNNING, runAttemptCount = attemptCount)
+
                             try {
                                 val inputData = TaskData.fromJson(runningEntity.inputDataJson)
                                 val result = taskExecutor.execute(runningEntity, inputData)
                                 handleResult(runningEntity, result)
                             } catch (e: CancellationException) {
                                 withContext(NonCancellable) {
-                                    db.taskDao().updateTaskState(id = runningEntity.id, state = TaskState.ENQUEUED)
+                                    val current = db.taskDao().getTask(runningEntity.id)
+                                    if (current != null && current.state != TaskState.CANCELLED) {
+                                        db.taskDao().updateTaskState(id = runningEntity.id, state = TaskState.ENQUEUED)
+                                    }
                                 }
                                 throw e
-                            } catch (e: Throwable) {
+                            } catch (e: Exception) {
                                 val failureResult = TaskResult.Failure(
                                     outputData = taskDataOf("error" to (e.message ?: "Task execution failed"))
                                 )
@@ -117,10 +129,12 @@ internal class TaskCoordinator(
                 }
             }
 
-            if (!claimedAny) {
+            totalExecuted += claimedInPass
+            if (claimedInPass == 0) {
                 break
             }
         }
+        return totalExecuted
     }
 
     private suspend fun handleResult(entity: TaskEntity, result: TaskResult) {
@@ -177,7 +191,7 @@ internal class TaskCoordinator(
 
             TaskResult.Retry -> {
                 val attempt = entity.runAttemptCount
-                if (attempt >= entity.maxRetries) {
+                if (attempt > entity.maxRetries) {
                     if (entity.repeatIntervalMs != null && entity.repeatIntervalMs > 0) {
                         db.taskDao().updateRunAttemptCount(id = entity.id, count = 0)
                         db.taskDao().updateScheduledAt(
@@ -207,6 +221,7 @@ internal class TaskCoordinator(
                 }
             }
         }
+        wakeScheduler?.scheduleNextWake()
     }
 
     private suspend fun resolveDependencies(entity: TaskEntity): Boolean {
@@ -237,6 +252,3 @@ internal class TaskCoordinator(
         return entity.backoffPolicy.calculateDelay(entity.backoffDelayMs, attempt)
     }
 }
-
-@Deprecated("Use TaskCoordinator instead", ReplaceWith("TaskCoordinator"))
-internal typealias WorkChainCoordinator = TaskCoordinator

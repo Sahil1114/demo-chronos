@@ -5,12 +5,12 @@ import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.model.toJson
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 
-fun TaskRequest.toEntity(
+internal fun TaskRequest.toEntity(
     scheduledAt: Long,
     uniqueName: String? = null,
     chainId: String? = null,
     chainOrder: Int = 0
-) = TaskEntity(
+): TaskEntity = TaskEntity(
     id = id,
     workerClassName = workerClassName,
     state = TaskState.ENQUEUED,

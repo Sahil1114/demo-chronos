@@ -1,7 +1,9 @@
 package io.github.sahilmakkar.chronos.task
 
-
-enum class TaskState {
+/**
+ * State lifecycle representation for background tasks managed by Chronos.
+ */
+public enum class TaskState {
     /**
      * Task is enqueued and waiting for trigger conditions (initial delay, dependencies, constraints) to be met.
      */

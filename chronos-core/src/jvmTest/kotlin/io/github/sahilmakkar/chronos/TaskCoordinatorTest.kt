@@ -1,5 +1,6 @@
 package io.github.sahilmakkar.chronos
 
+import io.github.sahilmakkar.chronos.engine.TaskCoordinator
 import io.github.sahilmakkar.chronos.executor.InProcessTaskExecutor
 import io.github.sahilmakkar.chronos.scheduler.ChronosTaskCanceller
 import io.github.sahilmakkar.chronos.scheduler.ChronosTaskEnqueuer
@@ -21,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
@@ -415,5 +417,79 @@ class TaskCoordinatorTest {
         sharedDbFile.delete()
         File("${sharedDbFile.absolutePath}-wal").delete()
         File("${sharedDbFile.absolutePath}-shm").delete()
+    }
+
+    @Test
+    fun `tasks waiting for semaphore permit remain ENQUEUED until permit acquired`() = runTest {
+        val coordinator = TaskCoordinator(
+            db = h.db,
+            taskExecutor = h.executor,
+            constraintProvider = h.constraintVerifier,
+            clock = h.clock,
+            maxConcurrentTasks = 1
+        )
+        val t1 = h.request()
+        val t2 = h.request()
+
+        val t1Started = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val t1Proceed = kotlinx.coroutines.CompletableDeferred<Unit>()
+
+        h.executor.script = { entity ->
+            if (entity.id == t1.id) {
+                t1Started.complete(Unit)
+                t1Proceed.await()
+            }
+            TaskResult.Success()
+        }
+
+        h.enqueue(t1)
+        h.enqueue(t2)
+
+        val runJob = launch(kotlinx.coroutines.Dispatchers.Default) {
+            coordinator.runPendingTasks()
+        }
+
+        t1Started.await()
+
+        // t1 is running
+        assertEquals(TaskState.RUNNING, h.db.taskDao().getTask(t1.id)?.state)
+        // t2 is waiting for permit, must still be ENQUEUED, not RUNNING
+        assertEquals(TaskState.ENQUEUED, h.db.taskDao().getTask(t2.id)?.state)
+
+        t1Proceed.complete(Unit)
+        runJob.join()
+
+        assertEquals(TaskState.SUCCEEDED, h.db.taskDao().getTask(t1.id)?.state)
+        assertEquals(TaskState.SUCCEEDED, h.db.taskDao().getTask(t2.id)?.state)
+    }
+
+    @Test
+    fun `cancelled task in flight remains CANCELLED and is not reset to ENQUEUED`() = runTest {
+        val req = h.request()
+        val started = kotlinx.coroutines.CompletableDeferred<Unit>()
+
+        h.executor.script = {
+            started.complete(Unit)
+            kotlinx.coroutines.delay(10_000)
+            TaskResult.Success()
+        }
+
+        h.enqueue(req)
+        val runJob = launch(kotlinx.coroutines.Dispatchers.Default) {
+            h.coordinator.runPendingTasks()
+        }
+
+        started.await()
+        assertEquals(TaskState.RUNNING, h.db.taskDao().getTask(req.id)?.state)
+
+        // Cancel task via canceller
+        h.cancelTaskById(req.id)
+        assertEquals(TaskState.CANCELLED, h.db.taskDao().getTask(req.id)?.state)
+
+        runJob.cancel()
+        runJob.join()
+
+        // Must still be CANCELLED, not reverted to ENQUEUED
+        assertEquals(TaskState.CANCELLED, h.db.taskDao().getTask(req.id)?.state)
     }
 }

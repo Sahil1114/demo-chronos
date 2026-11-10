@@ -1,16 +1,38 @@
 package io.github.sahilmakkar.chronos.task.policy
 
 /**
- * Specifies the policy for calculating delays when retrying failed tasks.
+ * Algorithm used to compute delay duration before a failed task is scheduled for a retry attempt.
+ *
+ * Retry delays are calculated dynamically based on the current completed attempt count `n` (where `n >= 1`)
+ * and the configured base duration [io.github.sahilmakkar.chronos.task.request.TaskRequest.backoffDelay].
+ *
+ * @see io.github.sahilmakkar.chronos.task.request.TaskRequestBuilder.setBackoffCriteria
  */
 public enum class BackoffPolicy {
     /**
-     * Linear delay increase: backoffDelay * attempt.
+     * Delay scales linearly with the attempt number:
+     * ```
+     * delay = backoffDelay * attempt
+     * ```
+     *
+     * Example with a 10s base delay:
+     * - Attempt 1: 10s
+     * - Attempt 2: 20s
+     * - Attempt 3: 30s
      */
     LINEAR,
 
     /**
-     * Exponential delay increase: backoffDelay * 2^(attempt - 1).
+     * Delay scales exponentially with the attempt number:
+     * ```
+     * delay = backoffDelay * 2^(attempt - 1)
+     * ```
+     *
+     * Example with a 10s base delay:
+     * - Attempt 1: 10s
+     * - Attempt 2: 20s
+     * - Attempt 3: 40s
+     * - Attempt 4: 80s
      */
     EXPONENTIAL;
 

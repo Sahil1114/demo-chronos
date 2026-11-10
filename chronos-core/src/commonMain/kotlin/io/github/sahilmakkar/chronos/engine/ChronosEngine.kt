@@ -20,7 +20,20 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
 
 /**
- * Core engine implementation tying together scheduling, observation, execution, and lifecycle management.
+ * Production implementation of [Chronos] unifying scheduling, persistence, background observation, and lifecycle management.
+ *
+ * Coordinates internal subsystems:
+ * - [TaskEnqueuer] for transactional task and chain insertions.
+ * - [TaskCanceller] for active task state revocation and downstream dependency cancellation.
+ * - [TaskStore] for Room database state observation flows.
+ * - [TaskCoordinator] for concurrent task claiming and execution.
+ * - [Daemon] for driving the background event dispatch loop.
+ *
+ * ### Lifecycle and Shutdown:
+ * Implements [AutoCloseable]. When [close] is invoked, resources are shut down in strict order:
+ * 1. The background [Daemon] loop is stopped.
+ * 2. The internal [CoroutineScope] is cancelled, terminating active child jobs.
+ * 3. The [onClose] callback is invoked to close the underlying Room database.
  */
 internal class ChronosEngine(
     override val registry: WorkerRegistry,
@@ -68,6 +81,9 @@ internal class ChronosEngine(
         wakeScheduler?.scheduleNextWake()
     }
 
+    /**
+     * Shuts down the engine: stops daemon loop, joins pending coroutine jobs, and closes database.
+     */
     override fun close() {
         daemon.stop()
         val job = coroutineScope.coroutineContext[Job]

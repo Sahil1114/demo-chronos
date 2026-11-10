@@ -5,11 +5,19 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
 /**
- * Permitted time of day window in which a task may be executed.
+ * Permitted time-of-day execution window in which a task may be dispatched.
  *
- * @property startHour The beginning hour of the allowed window (0-23).
- * @property endHour The ending hour of the allowed window (0-24).
- * @property timeZone Timezone identifier (defaults to "UTC").
+ * Useful for scheduling maintenance, synchronization, or analytics jobs during off-peak hours
+ * (such as overnight between 02:00 and 05:00).
+ *
+ * ### Window Wrapping:
+ * - **Same-day window (`startHour < endHour`):** E.g. `startHour = 9, endHour = 17` permits execution between 09:00 and 17:00.
+ * - **Overnight wrap-around window (`startHour > endHour`):** E.g. `startHour = 22, endHour = 6` permits execution
+ *   from 22:00 at night until 06:00 the following morning.
+ *
+ * @property startHour The beginning hour of the allowed window (0..23, inclusive).
+ * @property endHour The ending hour of the allowed window (0..24, exclusive).
+ * @property timeZone Timezone identifier string used to resolve local hours (defaults to "UTC").
  */
 public data class TimeWindow(
     public val startHour: Int,

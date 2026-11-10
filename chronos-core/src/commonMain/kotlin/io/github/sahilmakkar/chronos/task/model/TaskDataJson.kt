@@ -3,7 +3,9 @@ package io.github.sahilmakkar.chronos.task.model
 import kotlinx.serialization.json.*
 
 /**
- * Serializes [TaskData] key-value pairs into a JSON string.
+ * Serializes [TaskData] key-value pairs into a standardized JSON string representation.
+ *
+ * Supported values: [String], [Number], [Boolean]. Complex unsupported types serialize to null.
  */
 internal fun TaskData.toJson(): String {
     val jsonMap = values.mapValues { (_, value) ->
@@ -17,6 +19,11 @@ internal fun TaskData.toJson(): String {
     return Json.encodeToString(serializer = JsonObject.serializer(), value = JsonObject(jsonMap))
 }
 
+/**
+ * Deserializes a JSON string back into a [TaskData] instance.
+ *
+ * Silently ignores malformed or unknown element structures to prevent deserialization crashes.
+ */
 internal fun TaskData.Companion.fromJson(json: String): TaskData {
     if (json.isBlank()) return TaskData()
 

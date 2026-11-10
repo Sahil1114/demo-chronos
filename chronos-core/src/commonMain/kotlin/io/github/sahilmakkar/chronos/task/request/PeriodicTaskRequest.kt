@@ -8,7 +8,29 @@ import kotlin.reflect.KClass
 import kotlin.time.Duration
 
 /**
- * Task request recurring at fixed time intervals.
+ * Recurring task request that executes repeatedly at a fixed [repeatInterval].
+ *
+ * Periodic tasks remain scheduled indefinitely in persistent storage until explicitly cancelled via
+ * [io.github.sahilmakkar.chronos.Chronos.cancelTaskById] or [io.github.sahilmakkar.chronos.Chronos.cancelTaskByTag].
+ *
+ * ### Failure and Rescheduling Semantics:
+ * Following Android WorkManager semantics, periodic tasks survive execution failures:
+ * - Upon a successful run, the attempt counter is reset and the task is rescheduled for `now + repeatInterval`.
+ * - If a run fails or retries are exhausted, diagnostic output is persisted, the attempt counter resets to 0,
+ *   and the task is rescheduled for the next interval period in the `ENQUEUED` state.
+ *
+ * Instances are configured and created via [PeriodicTaskRequest.Builder].
+ *
+ * ### Example:
+ * ```kotlin
+ * val syncRequest = PeriodicTaskRequest.Builder(SyncWorker::class, repeatInterval = 1.hours)
+ *     .setConstraints(EnvironmentConstraints(requiresCharging = true))
+ *     .addTag("periodic-sync")
+ *     .build()
+ * ```
+ *
+ * @see OneTimeTaskRequest
+ * @see TaskRequestBuilder
  */
 public class PeriodicTaskRequest internal constructor(
     override val id: String,

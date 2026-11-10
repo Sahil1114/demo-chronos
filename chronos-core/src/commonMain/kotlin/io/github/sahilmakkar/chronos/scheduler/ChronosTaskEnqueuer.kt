@@ -8,7 +8,6 @@ import io.github.sahilmakkar.chronos.storage.TaskEntity
 import io.github.sahilmakkar.chronos.storage.TaskTagEntity
 import io.github.sahilmakkar.chronos.storage.mapper.toEntity
 import io.github.sahilmakkar.chronos.task.TaskChain
-import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
@@ -19,7 +18,10 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 /**
- * Default implementation of [TaskEnqueuer] persisting tasks into Room database.
+ * Default implementation of [TaskEnqueuer] managing database task insertions and execution triggers.
+ *
+ * Persists task requests, schedules platform wake-ups via [WakeScheduler], and notifies [TaskCoordinator]
+ * to evaluate pending work immediately.
  */
 internal class ChronosTaskEnqueuer(
     private val db: ChronosDatabase,
@@ -30,6 +32,14 @@ internal class ChronosTaskEnqueuer(
     private val wakeScheduler: WakeScheduler? = null
 ) : TaskEnqueuer {
 
+    /**
+     * Enqueues a standalone [TaskRequest] for immediate or delayed background execution.
+     *
+     * Persists the task into the database, inserts any associated tags, schedules the next OS background
+     * wake trigger via [WakeScheduler], and notifies the [TaskCoordinator] to evaluate ready tasks.
+     *
+     * @param request The task specification to persist and schedule.
+     */
     override fun enqueue(request: TaskRequest) {
         coroutineScope.launch {
             db.taskDao().insertTask(
@@ -38,13 +48,26 @@ internal class ChronosTaskEnqueuer(
                         .toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds
                 )
             )
-            db.taskDao().insertTags(request.tags.map { TaskTagEntity(request.id, it) })
+            db.taskDao()
+                .insertTags(request.tags.map { TaskTagEntity(taskId = request.id, tag = it) })
             onEnqueued?.invoke(request)
             wakeScheduler?.scheduleNextWake()
             coordinator.runPendingTasks()
         }
     }
 
+    /**
+     * Enqueues a unique one-time task applying the specified collision [policy].
+     *
+     * If an existing task shares [name]:
+     * - [UniqueTaskPolicy.KEEP]: Leaves the active task intact; drops [request].
+     * - [UniqueTaskPolicy.REPLACE]: Cancels the existing active task and downstream dependents, inserting [request].
+     * - [UniqueTaskPolicy.APPEND]: Attaches [request] as a sequential dependency behind the current leaf of the existing chain.
+     *
+     * @param name Unique task name identifier.
+     * @param policy Strategy for handling collisions with existing tasks sharing the same name.
+     * @param request One-time task specification to enqueue.
+     */
     override fun enqueueUniqueTask(
         name: String,
         policy: UniqueTaskPolicy,
@@ -55,7 +78,7 @@ internal class ChronosTaskEnqueuer(
             if (existing != null) {
                 when (policy) {
                     UniqueTaskPolicy.KEEP -> return@launch
-                    UniqueTaskPolicy.REPLACE -> cancelAndReplace(existing.id)
+                    UniqueTaskPolicy.REPLACE -> cancelAndReplace(existingId = existing.id)
                     UniqueTaskPolicy.APPEND -> {
                         val leaf = findLeafTask(existing.id)
                         insertWithDependency(
@@ -78,12 +101,20 @@ internal class ChronosTaskEnqueuer(
         }
     }
 
+    /**
+     * Enqueues a unique periodic task applying [UniqueTaskPolicy.KEEP] or [UniqueTaskPolicy.REPLACE].
+     *
+     * @param name Unique task name identifier.
+     * @param policy Collision resolution strategy. Note: [UniqueTaskPolicy.APPEND] is rejected.
+     * @param request Periodic task specification to enqueue.
+     * @throws IllegalArgumentException if [policy] is [UniqueTaskPolicy.APPEND].
+     */
     override fun enqueueUniquePeriodicTask(
         name: String,
         policy: UniqueTaskPolicy,
         request: PeriodicTaskRequest
     ) {
-        require(policy != UniqueTaskPolicy.APPEND) {
+        require(value = policy != UniqueTaskPolicy.APPEND) {
             "APPEND policy is not supported for unique periodic work."
         }
         coroutineScope.launch {
@@ -91,7 +122,7 @@ internal class ChronosTaskEnqueuer(
             if (existing != null) {
                 when (policy) {
                     UniqueTaskPolicy.KEEP -> return@launch
-                    UniqueTaskPolicy.REPLACE -> cancelAndReplace(existing.id)
+                    UniqueTaskPolicy.REPLACE -> cancelAndReplace(existingId = existing.id)
                     UniqueTaskPolicy.APPEND -> return@launch
                 }
             }
@@ -102,6 +133,13 @@ internal class ChronosTaskEnqueuer(
         }
     }
 
+    /**
+     * Enqueues a sequential [TaskChain] within a single atomic database transaction.
+     *
+     * Tasks, tags, and parent-child dependency edges are persisted simultaneously.
+     *
+     * @param chain The chained sequence of task requests.
+     */
     override fun enqueue(chain: TaskChain) {
         if (chain.requests.isEmpty()) return
         coroutineScope.launch {
@@ -139,7 +177,8 @@ internal class ChronosTaskEnqueuer(
     private suspend fun insertUnique(request: TaskRequest, name: String) {
         db.taskDao().insertTask(
             request.toEntity(
-                scheduledAt = clock.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
+                scheduledAt = clock.now()
+                    .toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
                 uniqueName = name
             )
         )
@@ -152,7 +191,8 @@ internal class ChronosTaskEnqueuer(
         parentId: String
     ) {
         val task = request.toEntity(
-            scheduledAt = clock.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
+            scheduledAt = clock.now()
+                .toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
             uniqueName = uniqueName
         )
         val tags = request.tags.map { TaskTagEntity(request.id, it) }

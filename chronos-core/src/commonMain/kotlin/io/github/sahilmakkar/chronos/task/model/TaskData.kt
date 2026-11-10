@@ -1,9 +1,30 @@
 package io.github.sahilmakkar.chronos.task.model
 
 /**
- * Key-value payload container for task inputs, outputs, and progress.
+ * An immutable key-value payload container used to pass parameters, progress updates, and results to and from [io.github.sahilmakkar.chronos.worker.TaskWorker] instances.
+ *
+ * `TaskData` is serialized to and from JSON when persisted in the Room SQLite database.
+ * Supported primitive value types include:
+ * - [String]
+ * - [Int], [Long], [Double], [Float] (stored and accessed numerically)
+ * - [Boolean]
+ *
+ * ### Example:
+ * ```kotlin
+ * val input = taskDataOf(
+ *     "userId" to 42,
+ *     "syncToken" to "abc-xyz",
+ *     "retryAllowed" to true
+ * )
+ *
+ * val userId = input.getInt("userId", defaultValue = -1)
+ * val token = input.getString("syncToken")
+ * ```
  *
  * @property values Underlying map of serializable key-value entries.
+ *
+ * @see taskDataOf
+ * @see io.github.sahilmakkar.chronos.task.model.TaskInfo
  */
 public data class TaskData(public val values: Map<String, Any> = emptyMap()) {
 

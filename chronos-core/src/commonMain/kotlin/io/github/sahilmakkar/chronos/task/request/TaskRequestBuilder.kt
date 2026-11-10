@@ -11,6 +11,24 @@ import kotlin.uuid.Uuid
 
 /**
  * Base builder for configuring common parameters of a [TaskRequest].
+ *
+ * Provides a fluent API to configure execution constraints, input payloads, retry backoff algorithms,
+ * initial scheduling delays, timeouts, and diagnostic tags.
+ *
+ * ### Default Values:
+ * - **id:** Random canonical 36-character dashed UUID (`kotlin.uuid.Uuid.random().toString()`).
+ * - **inputData:** Empty [TaskData] payload.
+ * - **constraints:** Default [EnvironmentConstraints] (no network, battery, or idle restrictions).
+ * - **initialDelay:** `Duration.ZERO` (immediate execution eligibility upon enqueue).
+ * - **timeout:** `null` (no execution timeout enforced).
+ * - **backoffPolicy:** [BackoffPolicy.EXPONENTIAL].
+ * - **backoffDelay:** 30 seconds.
+ * - **maxRetries:** 3 retries (permitting 4 total execution attempts).
+ * - **tags:** Empty set.
+ *
+ * @param T The concrete [TaskRequest] type produced by this builder.
+ * @param B The concrete builder subtype, returned by fluent setter methods.
+ * @property workerClass Kotlin reflection reference to the [TaskWorker] implementation class.
  */
 public sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T, B>>(
     private val workerClass: KClass<out TaskWorker>

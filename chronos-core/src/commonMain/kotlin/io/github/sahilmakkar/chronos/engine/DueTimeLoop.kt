@@ -17,7 +17,20 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Event loop that monitors the database for the next due task and triggers execution passes.
+ * Reactive event loop that observes the earliest scheduled execution time in the database and triggers dispatch passes.
+ *
+ * Replaces high-frequency polling with a reactive, event-driven sleeping loop:
+ * 1. Observes [io.github.sahilmakkar.chronos.storage.TaskDao.observeNextDueAt] via Room Flow.
+ * 2. Whenever the earliest due time changes (e.g. a new task is inserted or retried), [collectLatest] cancels
+ *    any pending sleep delay and recalibrates the wait duration.
+ * 3. Delays exactly until `nextDueAt - nowMs`, then triggers an execution pass via a conflated wake channel.
+ * 4. Runs a low-frequency fallback check ([blockedRecheckInterval]) to re-evaluate tasks previously blocked
+ *    by unsatisfied hardware or network constraints.
+ *
+ * @param db Database instance queried for the next scheduled task.
+ * @param coordinator Coordinator dispatched when a task becomes due.
+ * @param clock Time source used for calculating sleep durations.
+ * @param blockedRecheckInterval Fallback interval for re-evaluating constraint-blocked tasks (default 15 seconds).
  */
 internal class DueTimeLoop(
     private val db: ChronosDatabase,

@@ -15,9 +15,15 @@ import androidx.room3.RoomDatabaseConstructor
 @ConstructedBy(ChronosDatabaseConstructor::class)
 internal abstract class ChronosDatabase : RoomDatabase() {
 
+    /**
+     * Returns the [TaskDao] for performing persistent queries and mutations.
+     */
     abstract fun taskDao(): TaskDao
 }
 
+/**
+ * Platform constructor expect object required by Room KMP for database instantiation.
+ */
 @Suppress("NO_ACTUAL_FOR_EXPECT")
 internal expect object ChronosDatabaseConstructor : RoomDatabaseConstructor<ChronosDatabase> {
     override fun initialize(): ChronosDatabase

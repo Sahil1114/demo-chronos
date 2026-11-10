@@ -27,7 +27,22 @@ import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 
 /**
- * Central coordinator responsible for task claiming, dependency resolution, execution dispatch, and result handling.
+ * Central execution engine responsible for task claiming, dependency resolution, execution dispatch, and result handling.
+ *
+ * ### Concurrency and Claiming Model:
+ * 1. Queries pending tasks in `ENQUEUED` or `RETRYING` states whose `scheduledAt <= now`.
+ * 2. Filters by constraint satisfaction and parent dependency completion.
+ * 3. Enforces concurrency limits using a [Semaphore] capped at [maxConcurrentTasks].
+ * 4. Atomically transitions tasks from claimable states to [TaskState.RUNNING] inside the acquired semaphore permit.
+ * 5. Executes workers within try-catch blocks, rethrowing [CancellationException] while treating uncaught errors as failures.
+ * 6. Iterates via an iterative pass loop until no eligible tasks remain (avoiding deep recursion).
+ *
+ * @param db The Room database instance storing task state.
+ * @param taskExecutor Executor dispatching work to registered [io.github.sahilmakkar.chronos.worker.TaskWorker] instances.
+ * @param constraintProvider Evaluator checking environmental constraints (network, battery, idle, time window).
+ * @param clock Time source used for scheduling and delay comparisons (injected for deterministic testing).
+ * @param maxConcurrentTasks Maximum number of tasks permitted to execute simultaneously (defaults to 4).
+ * @param wakeScheduler Optional platform background wake scheduler triggered when retry or periodic tasks reschedule.
  */
 internal class TaskCoordinator(
     private val db: ChronosDatabase,
@@ -40,12 +55,20 @@ internal class TaskCoordinator(
 
     private val semaphore = Semaphore(maxConcurrentTasks)
 
+    /**
+     * Resets any stranded [TaskState.RUNNING] tasks back to [TaskState.ENQUEUED].
+     *
+     * Invoked during startup and process recovery to recover tasks abandoned by abrupt app termination.
+     */
     suspend fun sweepOrphans() {
         db.taskDao().getTasksByState(TaskState.RUNNING).forEach {
             db.taskDao().updateTaskState(id = it.id, state = TaskState.ENQUEUED)
         }
     }
 
+    /**
+     * Re-evaluates dependency edges across all chains to unblock eligible children or propagate failures.
+     */
     suspend fun sweepChainRecovery() {
         db.taskDao().getAllDependencies().forEach { dep ->
             val parent = db.taskDao().getTask(id = dep.parentTaskId) ?: return@forEach
@@ -73,6 +96,11 @@ internal class TaskCoordinator(
         }
     }
 
+    /**
+     * Executes an iterative execution pass, claiming and dispatching all eligible pending tasks.
+     *
+     * @return Total number of tasks claimed and dispatched during this pass.
+     */
     suspend fun runPendingTasks(): Int {
         var totalExecuted = 0
         while (true) {
@@ -140,6 +168,9 @@ internal class TaskCoordinator(
         return totalExecuted
     }
 
+    /**
+     * Processes execution results: transitions task state, handles retries, chain triggers, and periodic rescheduling.
+     */
     private suspend fun handleResult(entity: TaskEntity, result: TaskResult) {
         val current = db.taskDao().getTask(entity.id)
         if (current?.state == TaskState.CANCELLED) {
@@ -227,6 +258,9 @@ internal class TaskCoordinator(
         wakeScheduler?.scheduleNextWake()
     }
 
+    /**
+     * Evaluates parent task states for a child task in a chain, returning true if all parents succeeded or continued.
+     */
     private suspend fun resolveDependencies(entity: TaskEntity): Boolean {
         val deps = db.taskDao().getDependenciesForChild(entity.id)
         for (dep in deps) {
@@ -251,6 +285,9 @@ internal class TaskCoordinator(
         return true
     }
 
+    /**
+     * Calculates the retry backoff duration in milliseconds according to the task's policy.
+     */
     internal fun computeBackoffDelay(entity: TaskEntity, attempt: Int): Long {
         return entity.backoffPolicy.calculateDelay(entity.backoffDelayMs, attempt)
     }

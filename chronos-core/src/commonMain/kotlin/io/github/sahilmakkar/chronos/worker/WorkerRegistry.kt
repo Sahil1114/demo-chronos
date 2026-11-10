@@ -3,7 +3,31 @@ package io.github.sahilmakkar.chronos.worker
 import io.github.sahilmakkar.chronos.task.model.TaskData
 
 /**
- * Registry holding factory functions for instantiating [TaskWorker] implementations by class name.
+ * Thread-safe registry that maps fully-qualified worker class names to factory lambdas.
+ *
+ * In Kotlin Multiplatform environments (such as Kotlin/Native on iOS), dynamic class reflection
+ * is either constrained or unavailable. Chronos avoids runtime reflection by requiring workers
+ * to be registered as explicit factory lambdas within a [WorkerRegistry].
+ *
+ * ### Automatic Registration with KSP:
+ * By annotating worker classes with [io.github.sahilmakkar.chronos.RegisterWorker], the Chronos KSP processor
+ * (`chronos-processor`) generates an extension function:
+ * ```kotlin
+ * val registry = WorkerRegistry().apply {
+ *     registerGeneratedWorkers()
+ * }
+ * ```
+ *
+ * ### Manual Registration:
+ * Workers may also be registered manually:
+ * ```kotlin
+ * val registry = WorkerRegistry().apply {
+ *     register("com.example.SyncWorker") { input -> SyncWorker(input) }
+ * }
+ * ```
+ *
+ * @see TaskWorker
+ * @see io.github.sahilmakkar.chronos.RegisterWorker
  */
 public class WorkerRegistry {
     private val factories = mutableMapOf<String, (TaskData) -> TaskWorker>()

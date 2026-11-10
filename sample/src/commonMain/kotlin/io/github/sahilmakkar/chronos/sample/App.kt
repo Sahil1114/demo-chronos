@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import io.github.sahilmakkar.chronos.Chronos
 import io.github.sahilmakkar.chronos.beginWith
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
+import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import kotlin.time.Duration
 
@@ -73,7 +74,7 @@ fun App(chronos: Chronos) {
                                 OneTimeTaskRequest.Builder(workerClass = SampleSuccessWorker::class)
                                     .addTag("sample-task")
                                     .build()
-                            chronos.enqueue(req)
+                            chronos.enqueueTask(name = "sample-success-${req.id}", policy = UniqueTaskPolicy.REPLACE, request = req)
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -85,7 +86,7 @@ fun App(chronos: Chronos) {
                                 OneTimeTaskRequest.Builder(workerClass = SampleFailureWorker::class)
                                     .addTag("sample-task")
                                     .build()
-                            chronos.enqueue(req)
+                            chronos.enqueueTask(name = "sample-failure-${req.id}", policy = UniqueTaskPolicy.REPLACE, request = req)
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -102,7 +103,7 @@ fun App(chronos: Chronos) {
                                     )
                                     .addTag(tag = "sample-task")
                                     .build()
-                            chronos.enqueue(req)
+                            chronos.enqueueTask(name = "sample-retry-${req.id}", policy = UniqueTaskPolicy.REPLACE, request = req)
                         },
                         modifier = Modifier.weight(1f)
                     ) {

@@ -157,19 +157,21 @@ internal class TestHarness(
         return b.build()
     }
 
+    suspend fun enqueueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
+        enqueuer.enqueueTask(name, policy, request)
+        scope.coroutineContext[Job]?.children?.toList()?.forEach { it.join() }
+    }
+
+    suspend fun enqueuePeriodicTask(name: String, policy: UniqueTaskPolicy, request: io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest) {
+        enqueuer.enqueuePeriodicTask(name, policy, request)
+        scope.coroutineContext[Job]?.children?.toList()?.forEach { it.join() }
+    }
+
     suspend fun enqueue(request: TaskRequest) {
-        enqueuer.enqueue(request)
-        scope.coroutineContext[Job]?.children?.toList()?.forEach { it.join() }
-    }
-
-    suspend fun enqueueUniqueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
-        enqueuer.enqueueUniqueTask(name, policy, request)
-        scope.coroutineContext[Job]?.children?.toList()?.forEach { it.join() }
-    }
-
-    suspend fun enqueueUniquePeriodicTask(name: String, policy: UniqueTaskPolicy, request: io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest) {
-        enqueuer.enqueueUniquePeriodicTask(name, policy, request)
-        scope.coroutineContext[Job]?.children?.toList()?.forEach { it.join() }
+        when (request) {
+            is OneTimeTaskRequest -> enqueueTask(request.id, UniqueTaskPolicy.KEEP, request)
+            is io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest -> enqueuePeriodicTask(request.id, UniqueTaskPolicy.KEEP, request)
+        }
     }
 
     suspend fun enqueueChain(

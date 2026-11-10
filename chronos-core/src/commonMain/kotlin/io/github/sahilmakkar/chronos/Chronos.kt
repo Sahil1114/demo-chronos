@@ -45,7 +45,7 @@ import kotlinx.coroutines.flow.Flow
  *     .setConstraints(EnvironmentConstraints(requiredNetworkType = NetworkType.CONNECTED))
  *     .build()
  *
- * Chronos.instance.enqueue(request)
+ * Chronos.instance.enqueueTask("sync_user", UniqueTaskPolicy.KEEP, request)
  * Chronos.instance.observeTask(request.id).collect { info ->
  *     println("Task state: ${info?.state}")
  * }
@@ -58,21 +58,6 @@ import kotlinx.coroutines.flow.Flow
  * @see io.github.sahilmakkar.chronos.worker.TaskWorker
  */
 public interface Chronos : AutoCloseable {
-
-    /**
-     * Enqueues a one-time or periodic task request for execution.
-     *
-     * The task is durably saved in the persistent database. If the task has no unsatisfied initial delays,
-     * dependencies, or unmet environment constraints, it becomes immediately eligible for execution and
-     * a coordinator dispatch pass is scheduled.
-     *
-     * On Android, if the task has a future scheduled execution time, the wake scheduler automatically
-     * registers or updates a WorkManager one-off wake request.
-     *
-     * @param request The task request specification to enqueue, containing worker parameters, delays,
-     * retry policies, and constraints.
-     */
-    public fun enqueue(request: TaskRequest)
 
     /**
      * Enqueues a unique one-time task identified by a distinct string name, applying the given
@@ -89,7 +74,7 @@ public interface Chronos : AutoCloseable {
      * @param request The one-time task request to enqueue.
      * @see UniqueTaskPolicy
      */
-    public fun enqueueUniqueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest)
+    public fun enqueueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest)
 
     /**
      * Enqueues a unique periodic task identified by a distinct string name, applying the given
@@ -104,7 +89,7 @@ public interface Chronos : AutoCloseable {
      * @throws IllegalArgumentException If [policy] is set to [UniqueTaskPolicy.APPEND].
      * @see UniqueTaskPolicy
      */
-    public fun enqueueUniquePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest)
+    public fun enqueuePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest)
 
     /**
      * Enqueues a sequential chain of dependent tasks.

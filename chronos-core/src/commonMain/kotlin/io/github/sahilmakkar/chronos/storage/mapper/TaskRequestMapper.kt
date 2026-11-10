@@ -17,15 +17,11 @@ import io.github.sahilmakkar.chronos.task.request.TaskRequest
  *
  * @param scheduledAt Epoch millisecond timestamp when this task becomes eligible for dispatch.
  * @param uniqueName Optional unique task name if enqueued via unique task APIs.
- * @param chainId Optional chain identifier linking tasks within a sequential workflow.
- * @param chainOrder Zero-based sequence index within the task chain.
  * @return A fully populated [TaskEntity] ready for insertion into Room SQLite.
  */
 internal fun TaskRequest.toEntity(
     scheduledAt: Long,
     uniqueName: String? = null,
-    chainId: String? = null,
-    chainOrder: Int = 0
 ): TaskEntity = TaskEntity(
     id = id,
     workerClassName = workerClassName,
@@ -35,8 +31,6 @@ internal fun TaskRequest.toEntity(
     runAttemptCount = 0,
     timeoutMs = timeout?.inWholeMilliseconds,
     scheduledAt = scheduledAt,
-    chainId = chainId,
-    chainOrder = chainOrder,
     inputDataJson = taskData.toJson(),
     outputDataJson = "{}",
     progressDataJson = "{}",

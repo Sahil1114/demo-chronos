@@ -34,10 +34,10 @@ class UniqueTaskPolicyTest {
         val req1 = h.request(initialDelay = 1.hours)
         val req2 = h.request()
 
-        h.enqueueUniqueTask("unique_work", UniqueTaskPolicy.KEEP, req1)
+        h.enqueueTask("unique_work", UniqueTaskPolicy.KEEP, req1)
         h.runPendingTasks()
 
-        h.enqueueUniqueTask("unique_work", UniqueTaskPolicy.KEEP, req2)
+        h.enqueueTask("unique_work", UniqueTaskPolicy.KEEP, req2)
         h.runPendingTasks()
 
         assertEquals(TaskState.ENQUEUED, h.db.taskDao().getTask(req1.id)?.state)
@@ -49,12 +49,12 @@ class UniqueTaskPolicyTest {
         val req1 = h.request()
         val req2 = h.request()
 
-        h.enqueueUniqueTask("unique_work", UniqueTaskPolicy.KEEP, req1)
+        h.enqueueTask("unique_work", UniqueTaskPolicy.KEEP, req1)
         h.runPendingTasks()
 
         assertEquals(TaskState.SUCCEEDED, h.db.taskDao().getTask(req1.id)?.state)
 
-        h.enqueueUniqueTask("unique_work", UniqueTaskPolicy.KEEP, req2)
+        h.enqueueTask("unique_work", UniqueTaskPolicy.KEEP, req2)
         h.runPendingTasks()
 
         assertEquals(null, h.db.taskDao().getTask(req2.id))
@@ -65,10 +65,10 @@ class UniqueTaskPolicyTest {
         val req1 = h.request(initialDelay = 1.hours)
         val req2 = h.request()
 
-        h.enqueueUniqueTask("unique_work", UniqueTaskPolicy.REPLACE, req1)
+        h.enqueueTask("unique_work", UniqueTaskPolicy.REPLACE, req1)
         h.runPendingTasks()
 
-        h.enqueueUniqueTask("unique_work", UniqueTaskPolicy.REPLACE, req2)
+        h.enqueueTask("unique_work", UniqueTaskPolicy.REPLACE, req2)
         h.runPendingTasks()
 
         assertEquals(TaskState.CANCELLED, h.db.taskDao().getTask(req1.id)?.state)
@@ -81,8 +81,8 @@ class UniqueTaskPolicyTest {
         val parent = h.request(initialDelay = 1.hours)
         val child = h.request()
 
-        h.enqueueUniqueTask("append_work", UniqueTaskPolicy.KEEP, parent)
-        h.enqueueUniqueTask("append_work", UniqueTaskPolicy.APPEND, child)
+        h.enqueueTask("append_work", UniqueTaskPolicy.KEEP, parent)
+        h.enqueueTask("append_work", UniqueTaskPolicy.APPEND, child)
         h.runPendingTasks()
 
         assertEquals(emptyList(), h.executor.executed)
@@ -98,13 +98,13 @@ class UniqueTaskPolicyTest {
         val parent = h.request()
         val child = h.request()
 
-        h.enqueueUniqueTask("append_work", UniqueTaskPolicy.KEEP, parent)
+        h.enqueueTask("append_work", UniqueTaskPolicy.KEEP, parent)
         h.runPendingTasks()
 
         assertEquals(listOf(parent.id), h.executor.executed)
         assertEquals(TaskState.SUCCEEDED, h.db.taskDao().getTask(parent.id)?.state)
 
-        h.enqueueUniqueTask("append_work", UniqueTaskPolicy.APPEND, child)
+        h.enqueueTask("append_work", UniqueTaskPolicy.APPEND, child)
         h.runPendingTasks()
 
         assertEquals(listOf(parent.id, child.id), h.executor.executed)
@@ -115,11 +115,11 @@ class UniqueTaskPolicyTest {
         val parent = h.request(initialDelay = 1.hours)
         val child = h.request()
 
-        h.enqueueUniqueTask("append_work", UniqueTaskPolicy.KEEP, parent)
+        h.enqueueTask("append_work", UniqueTaskPolicy.KEEP, parent)
         h.cancelTaskById(parent.id)
         assertEquals(TaskState.CANCELLED, h.db.taskDao().getTask(parent.id)?.state)
 
-        h.enqueueUniqueTask("append_work", UniqueTaskPolicy.APPEND, child)
+        h.enqueueTask("append_work", UniqueTaskPolicy.APPEND, child)
         h.runPendingTasks()
 
         assertEquals(TaskState.CANCELLED, h.db.taskDao().getTask(child.id)?.state)
@@ -132,9 +132,9 @@ class UniqueTaskPolicyTest {
         val b = h.request()
         val c = h.request()
 
-        h.enqueueUniqueTask("seq_work", UniqueTaskPolicy.KEEP, a)
-        h.enqueueUniqueTask("seq_work", UniqueTaskPolicy.APPEND, b)
-        h.enqueueUniqueTask("seq_work", UniqueTaskPolicy.APPEND, c)
+        h.enqueueTask("seq_work", UniqueTaskPolicy.KEEP, a)
+        h.enqueueTask("seq_work", UniqueTaskPolicy.APPEND, b)
+        h.enqueueTask("seq_work", UniqueTaskPolicy.APPEND, c)
         h.runPendingTasks()
 
         assertEquals(listOf(a.id, b.id, c.id), h.executor.executed)
@@ -145,7 +145,7 @@ class UniqueTaskPolicyTest {
         val periodicReq = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = 15.minutes).build()
 
         assertFailsWith<IllegalArgumentException> {
-            h.enqueueUniquePeriodicTask(
+            h.enqueuePeriodicTask(
                 "periodic_unique",
                 UniqueTaskPolicy.APPEND,
                 periodicReq
@@ -164,11 +164,11 @@ class UniqueTaskPolicyTest {
         val p1 = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = 15.minutes).build()
         val p2 = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = 30.minutes).build()
 
-        h.enqueueUniquePeriodicTask("periodic_keep", UniqueTaskPolicy.KEEP, p1)
+        h.enqueuePeriodicTask("periodic_keep", UniqueTaskPolicy.KEEP, p1)
         h.runPendingTasks()
         assertEquals(TaskState.ENQUEUED, h.db.taskDao().getTask(p1.id)?.state)
 
-        h.enqueueUniquePeriodicTask("periodic_keep", UniqueTaskPolicy.KEEP, p2)
+        h.enqueuePeriodicTask("periodic_keep", UniqueTaskPolicy.KEEP, p2)
         h.runPendingTasks()
         assertEquals(null, h.db.taskDao().getTask(p2.id))
     }
@@ -178,11 +178,11 @@ class UniqueTaskPolicyTest {
         val p1 = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = 15.minutes).build()
         val p2 = PeriodicTaskRequest.Builder(DummyWorker::class, repeatInterval = 30.minutes).build()
 
-        h.enqueueUniquePeriodicTask("periodic_replace", UniqueTaskPolicy.REPLACE, p1)
+        h.enqueuePeriodicTask("periodic_replace", UniqueTaskPolicy.REPLACE, p1)
         h.runPendingTasks()
         assertEquals(TaskState.ENQUEUED, h.db.taskDao().getTask(p1.id)?.state)
 
-        h.enqueueUniquePeriodicTask("periodic_replace", UniqueTaskPolicy.REPLACE, p2)
+        h.enqueuePeriodicTask("periodic_replace", UniqueTaskPolicy.REPLACE, p2)
         h.runPendingTasks()
         assertEquals(TaskState.CANCELLED, h.db.taskDao().getTask(p1.id)?.state)
         assertEquals(TaskState.ENQUEUED, h.db.taskDao().getTask(p2.id)?.state)

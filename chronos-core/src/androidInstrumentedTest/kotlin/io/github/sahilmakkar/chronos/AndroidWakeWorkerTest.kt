@@ -8,6 +8,7 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.model.TaskData
+import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.worker.TaskWorker
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
@@ -45,7 +46,7 @@ class AndroidWakeWorkerTest {
             .setInitialDelay(30.seconds)
             .build()
 
-        chronos.enqueue(request)
+        chronos.enqueueTask("wake_worker_test", UniqueTaskPolicy.REPLACE, request)
 
         val initialInfo = chronos.observeTask(request.id).first { it != null }
         assertEquals(TaskState.ENQUEUED, initialInfo?.state)

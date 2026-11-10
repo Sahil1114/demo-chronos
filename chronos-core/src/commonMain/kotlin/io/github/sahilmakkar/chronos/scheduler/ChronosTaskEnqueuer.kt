@@ -33,30 +33,6 @@ internal class ChronosTaskEnqueuer(
 ) : TaskEnqueuer {
 
     /**
-     * Enqueues a standalone [TaskRequest] for immediate or delayed background execution.
-     *
-     * Persists the task into the database, inserts any associated tags, schedules the next OS background
-     * wake trigger via [WakeScheduler], and notifies the [TaskCoordinator] to evaluate ready tasks.
-     *
-     * @param request The task specification to persist and schedule.
-     */
-    override fun enqueue(request: TaskRequest) {
-        coroutineScope.launch {
-            db.taskDao().insertTask(
-                request.toEntity(
-                    scheduledAt = clock.now()
-                        .toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds
-                )
-            )
-            db.taskDao()
-                .insertTags(request.tags.map { TaskTagEntity(taskId = request.id, tag = it) })
-            onEnqueued?.invoke(request)
-            wakeScheduler?.scheduleNextWake()
-            coordinator.runPendingTasks()
-        }
-    }
-
-    /**
      * Enqueues a unique one-time task applying the specified collision [policy].
      *
      * If an existing task shares [name]:
@@ -68,7 +44,7 @@ internal class ChronosTaskEnqueuer(
      * @param policy Strategy for handling collisions with existing tasks sharing the same name.
      * @param request One-time task specification to enqueue.
      */
-    override fun enqueueUniqueTask(
+    override fun enqueueTask(
         name: String,
         policy: UniqueTaskPolicy,
         request: OneTimeTaskRequest
@@ -109,7 +85,7 @@ internal class ChronosTaskEnqueuer(
      * @param request Periodic task specification to enqueue.
      * @throws IllegalArgumentException if [policy] is [UniqueTaskPolicy.APPEND].
      */
-    override fun enqueueUniquePeriodicTask(
+    override fun enqueuePeriodicTask(
         name: String,
         policy: UniqueTaskPolicy,
         request: PeriodicTaskRequest
@@ -152,8 +128,6 @@ internal class ChronosTaskEnqueuer(
                 tasks.add(
                     req.toEntity(
                         scheduledAt = nowMs + req.initialDelay.inWholeMilliseconds,
-                        chainId = chain.requests.first().id,
-                        chainOrder = i
                     )
                 )
                 tags.addAll(req.tags.map { TaskTagEntity(req.id, it) })

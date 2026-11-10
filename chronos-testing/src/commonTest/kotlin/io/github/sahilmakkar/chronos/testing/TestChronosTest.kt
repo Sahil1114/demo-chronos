@@ -3,6 +3,7 @@ package io.github.sahilmakkar.chronos.testing
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.model.TaskData
+import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.worker.TaskWorker
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
@@ -27,7 +28,7 @@ class TestChronosTest {
         val testChronos = TestChronos(registry)
         val req = OneTimeTaskRequest.Builder(SampleWorker::class).build()
 
-        testChronos.enqueue(req)
+        testChronos.enqueueTask("cancel_by_id", UniqueTaskPolicy.REPLACE, req)
         val initial = testChronos.observeTask(req.id).first()
         assertEquals(TaskState.ENQUEUED, initial?.state)
 
@@ -42,8 +43,8 @@ class TestChronosTest {
         val req1 = OneTimeTaskRequest.Builder(SampleWorker::class).addTag("tag-a").build()
         val req2 = OneTimeTaskRequest.Builder(SampleWorker::class).addTag("tag-b").build()
 
-        testChronos.enqueue(req1)
-        testChronos.enqueue(req2)
+        testChronos.enqueueTask("tag_a", UniqueTaskPolicy.REPLACE, req1)
+        testChronos.enqueueTask("tag_b", UniqueTaskPolicy.REPLACE, req2)
 
         testChronos.cancelTaskByTag("tag-a")
 
@@ -61,9 +62,9 @@ class TestChronosTest {
         val req2 = OneTimeTaskRequest.Builder(SampleWorker::class).addTag("shared").addTag("second").build()
         val req3 = OneTimeTaskRequest.Builder(SampleWorker::class).addTag("other").build()
 
-        testChronos.enqueue(req1)
-        testChronos.enqueue(req2)
-        testChronos.enqueue(req3)
+        testChronos.enqueueTask("shared_1", UniqueTaskPolicy.REPLACE, req1)
+        testChronos.enqueueTask("shared_2", UniqueTaskPolicy.REPLACE, req2)
+        testChronos.enqueueTask("other", UniqueTaskPolicy.REPLACE, req3)
 
         val sharedTasks = testChronos.observeTasksByTag("shared").first()
         assertEquals(2, sharedTasks.size)
@@ -79,7 +80,7 @@ class TestChronosTest {
         val testChronos = TestChronos(registry)
         val req = OneTimeTaskRequest.Builder(SampleWorker::class).build()
 
-        testChronos.enqueue(req)
+        testChronos.enqueueTask("run_pending", UniqueTaskPolicy.REPLACE, req)
         testChronos.runPendingTasksNow()
 
         val info = testChronos.observeTask(req.id).first()

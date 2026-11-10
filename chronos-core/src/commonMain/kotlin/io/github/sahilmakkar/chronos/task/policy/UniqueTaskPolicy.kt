@@ -6,8 +6,8 @@ package io.github.sahilmakkar.chronos.task.policy
  * Unique tasks prevent duplicate tasks from running or queuing concurrently (e.g. background syncs
  * or database cleanups).
  *
- * @see io.github.sahilmakkar.chronos.Chronos.enqueueUniqueTask
- * @see io.github.sahilmakkar.chronos.Chronos.enqueueUniquePeriodicTask
+ * @see io.github.sahilmakkar.chronos.Chronos.enqueueTask
+ * @see io.github.sahilmakkar.chronos.Chronos.enqueuePeriodicTask
  */
 public enum class UniqueTaskPolicy {
     /**

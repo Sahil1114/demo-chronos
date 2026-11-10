@@ -71,7 +71,7 @@ class JvmChronosTest {
     @Test
     fun testOneTimeTaskSuccess(): Unit = runBlocking {
         val req = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
-        chronos.enqueue(req)
+        chronos.enqueueTask(name = "success_test", policy = UniqueTaskPolicy.REPLACE, request = req)
 
         val info = awaitState(req.id, TaskState.SUCCEEDED)
         assertNotNull(info)
@@ -83,14 +83,14 @@ class JvmChronosTest {
         val req1 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
         val req2 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
 
-        chronos.enqueueUniqueTask(
+        chronos.enqueueTask(
             name = "unique_job",
             policy = UniqueTaskPolicy.KEEP,
             request = req1
         )
         awaitState(id = req1.id, state = TaskState.SUCCEEDED)
 
-        chronos.enqueueUniqueTask(
+        chronos.enqueueTask(
             name = "unique_job",
             policy = UniqueTaskPolicy.KEEP,
             request = req2
@@ -119,7 +119,7 @@ class JvmChronosTest {
             .addTag("smoke-tag")
             .build()
 
-        chronos.enqueue(req)
+        chronos.enqueueTask(name = "smoke_tag_test", policy = UniqueTaskPolicy.REPLACE, request = req)
         awaitState(req.id, TaskState.ENQUEUED)
 
         chronos.cancelTaskByTag("smoke-tag")

@@ -25,8 +25,6 @@ import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
  * @property runAttemptCount Number of execution attempts completed so far.
  * @property timeoutMs Maximum execution duration in milliseconds before timing out, or null.
  * @property scheduledAt Epoch millisecond timestamp when the task becomes eligible to run.
- * @property chainId Root task ID of the execution chain, or null if independent.
- * @property chainOrder Zero-indexed sequential position within an execution chain.
  * @property inputDataJson Serialized JSON representation of input parameters.
  * @property outputDataJson Serialized JSON representation of terminal output or failure diagnostics.
  * @property progressDataJson Serialized JSON representation of intermediate progress updates.
@@ -60,8 +58,6 @@ internal data class TaskEntity(
     val runAttemptCount: Int,
     val timeoutMs: Long?,
     val scheduledAt: Long,
-    val chainId: String?,
-    val chainOrder: Int,
     val inputDataJson: String,
     val outputDataJson: String,
     val progressDataJson: String,

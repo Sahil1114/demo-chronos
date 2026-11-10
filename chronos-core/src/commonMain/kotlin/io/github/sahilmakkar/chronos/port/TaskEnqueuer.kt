@@ -18,16 +18,6 @@ import io.github.sahilmakkar.chronos.task.request.TaskRequest
 internal interface TaskEnqueuer {
 
     /**
-     * Enqueues a standalone task request (one-time or periodic).
-     *
-     * Persists the task into the database, saves any associated tags, schedules the next OS background
-     * wake trigger if needed, and notifies the execution coordinator.
-     *
-     * @param request The task specification detailing worker type, input payload, constraints, and scheduling.
-     */
-    fun enqueue(request: TaskRequest)
-
-    /**
      * Enqueues a unique one-time task applying the specified collision [policy].
      *
      * If an existing task shares [name]:
@@ -39,7 +29,7 @@ internal interface TaskEnqueuer {
      * @param policy Collision resolution strategy if a task with [name] already exists in the database.
      * @param request The one-time task specification to enqueue.
      */
-    fun enqueueUniqueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest)
+    fun enqueueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest)
 
     /**
      * Enqueues a unique periodic task applying the specified collision [policy].
@@ -52,7 +42,7 @@ internal interface TaskEnqueuer {
      * @param request The periodic task specification to enqueue.
      * @throws IllegalArgumentException if [policy] is [UniqueTaskPolicy.APPEND].
      */
-    fun enqueueUniquePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest)
+    fun enqueuePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest)
 
     /**
      * Enqueues a sequential task chain in a single atomic database transaction.

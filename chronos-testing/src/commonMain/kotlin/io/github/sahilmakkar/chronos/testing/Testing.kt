@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.map
  * val request = OneTimeTaskRequest.Builder("UploadWorker")
  *     .addTag("sync")
  *     .build()
- * chronos.enqueue(request)
+ * chronos.enqueueTask("upload", UniqueTaskPolicy.REPLACE, request)
  *
  * assertEquals(1, testChronos.enqueuedRequests.size)
  * assertEquals("UploadWorker", testChronos.enqueuedRequests.first().workerClassName)
@@ -76,15 +76,7 @@ public class TestChronos(
     private val taskTags = mutableMapOf<String, Set<String>>()
     private val taskInfos = MutableStateFlow<Map<String, TaskInfo>>(emptyMap())
 
-    /**
-     * Enqueues a task request into the in-memory test queue.
-     *
-     * Adds [request] to [enqueuedRequests], associates its tags, and publishes an initial [TaskInfo]
-     * snapshot in [TaskState.ENQUEUED] to reactive observation flows.
-     *
-     * @param request The task specification to enqueue.
-     */
-    public override fun enqueue(request: TaskRequest) {
+    private fun enqueueInternal(request: TaskRequest) {
         enqueuedRequests.add(request)
         taskTags[request.id] = request.tags
         updateTaskInfo(request.id, TaskState.ENQUEUED)
@@ -93,27 +85,27 @@ public class TestChronos(
     /**
      * Enqueues a unique one-time task into the in-memory test queue.
      *
-     * In this in-memory test double, delegates directly to [enqueue].
+     * In this in-memory test double, adds [request] to pending tasks.
      *
      * @param name Unique task name.
      * @param policy Collision resolution policy.
      * @param request The one-time task request to enqueue.
      */
-    public override fun enqueueUniqueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
-        enqueue(request = request)
+    public override fun enqueueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
+        enqueueInternal(request = request)
     }
 
     /**
      * Enqueues a unique periodic task into the in-memory test queue.
      *
-     * In this in-memory test double, delegates directly to [enqueue].
+     * In this in-memory test double, adds [request] to pending tasks.
      *
      * @param name Unique task name.
      * @param policy Collision resolution policy.
      * @param request The periodic task request to enqueue.
      */
-    public override fun enqueueUniquePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {
-        enqueue(request = request)
+    public override fun enqueuePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {
+        enqueueInternal(request = request)
     }
 
     /**
@@ -124,7 +116,7 @@ public class TestChronos(
      * @param chain The task chain containing sequential requests.
      */
     public override fun enqueue(chain: TaskChain) {
-        chain.requests.forEach { enqueue(request = it) }
+        chain.requests.forEach { enqueueInternal(request = it) }
     }
 
     /**

@@ -13,6 +13,7 @@ import io.github.sahilmakkar.chronos.task.model.fromJson
 import io.github.sahilmakkar.chronos.task.model.taskDataOf
 import io.github.sahilmakkar.chronos.task.model.toJson
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
+import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
@@ -271,7 +272,7 @@ class TaskCoordinatorTest {
         )
 
         val req = OneTimeTaskRequest.Builder(HangingWorker::class).build()
-        engine.enqueue(req)
+        engine.enqueueTask(req.id, UniqueTaskPolicy.REPLACE, req)
 
         slowStarted.await()
         assertEquals(TaskState.RUNNING, testDb.taskDao().getTask(req.id)?.state)

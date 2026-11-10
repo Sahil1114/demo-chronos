@@ -51,18 +51,17 @@ internal class ChronosEngine(
         daemon.start()
     }
 
-    override fun enqueue(request: TaskRequest) = enqueuer.enqueue(request)
-    override fun enqueueUniqueTask(
+    override fun enqueueTask(
         name: String,
         policy: UniqueTaskPolicy,
         request: OneTimeTaskRequest
-    ) = enqueuer.enqueueUniqueTask(name, policy, request)
+    ) = enqueuer.enqueueTask(name, policy, request)
 
-    override fun enqueueUniquePeriodicTask(
+    override fun enqueuePeriodicTask(
         name: String,
         policy: UniqueTaskPolicy,
         request: PeriodicTaskRequest
-    ) = enqueuer.enqueueUniquePeriodicTask(name, policy, request)
+    ) = enqueuer.enqueuePeriodicTask(name, policy, request)
 
     override fun enqueue(chain: TaskChain) = enqueuer.enqueue(chain)
 

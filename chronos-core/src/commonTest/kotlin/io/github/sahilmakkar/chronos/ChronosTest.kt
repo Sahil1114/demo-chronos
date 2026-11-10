@@ -85,7 +85,7 @@ class ChronosTest {
             .setInputData(taskDataOf("num" to 21))
             .build()
 
-        scheduler.enqueue(req)
+        scheduler.enqueueTask(name = "sync_exec", policy = io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy.REPLACE, request = req)
         scheduler.runPendingTasksNow()
 
         val info = scheduler.observeTask(req.id).first()
@@ -105,7 +105,7 @@ class ChronosTest {
             .setInputData(taskDataOf("num" to 0))
             .build()
 
-        scheduler.enqueue(request = req)
+        scheduler.enqueueTask(name = "failed_exec", policy = io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy.REPLACE, request = req)
         scheduler.runPendingTasksNow()
 
         val info = scheduler.observeTask(id = req.id).first()

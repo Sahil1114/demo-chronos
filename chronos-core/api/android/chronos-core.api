@@ -4,9 +4,8 @@ public abstract interface class io/github/sahilmakkar/chronos/Chronos : java/lan
 	public abstract fun cancelTaskById (Ljava/lang/String;)V
 	public abstract fun cancelTaskByTag (Ljava/lang/String;)V
 	public abstract fun enqueue (Lio/github/sahilmakkar/chronos/task/TaskChain;)V
-	public abstract fun enqueue (Lio/github/sahilmakkar/chronos/task/request/TaskRequest;)V
-	public abstract fun enqueueUniquePeriodicTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/PeriodicTaskRequest;)V
-	public abstract fun enqueueUniqueTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/OneTimeTaskRequest;)V
+	public abstract fun enqueuePeriodicTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/PeriodicTaskRequest;)V
+	public abstract fun enqueueTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/OneTimeTaskRequest;)V
 	public abstract fun getRegistry ()Lio/github/sahilmakkar/chronos/worker/WorkerRegistry;
 	public abstract fun observeTask (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;
 	public abstract fun observeTasksByTag (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;

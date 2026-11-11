@@ -11,30 +11,30 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 @RegisterWorker
-class SampleSuccessWorker(inputData: TaskData) : TaskWorker(inputData) {
+class SampleSuccessWorker(inputData: TaskData) : TaskWorker(inputData = inputData) {
     override suspend fun doWork(): TaskResult {
-        setProgress(taskDataOf("status" to "Working: step 1/2"))
-        delay(1000.milliseconds)
-        setProgress(taskDataOf("status" to "Working: step 2/2"))
-        delay(1000.milliseconds)
-        return TaskResult.Success(taskDataOf("message" to "Completed successfully!"))
+        setProgress(data = taskDataOf("status" to "Working: step 1/2"))
+        delay(duration = 1000.milliseconds)
+        setProgress(data = taskDataOf("status" to "Working: step 2/2"))
+        delay(duration = 1000.milliseconds)
+        return TaskResult.Success(outputData = taskDataOf("message" to "Completed successfully!"))
     }
 }
 
 @RegisterWorker
-class SampleFailureWorker(inputData: TaskData) : TaskWorker(inputData) {
+class SampleFailureWorker(inputData: TaskData) : TaskWorker(inputData = inputData) {
     override suspend fun doWork(): TaskResult {
-        setProgress(taskDataOf("status" to "Processing..."))
-        delay(1500.milliseconds)
-        return TaskResult.Failure(taskDataOf("error" to "Simulated task failure"))
+        setProgress(data = taskDataOf("status" to "Processing..."))
+        delay(duration = 1500.milliseconds)
+        return TaskResult.Failure(outputData = taskDataOf("error" to "Simulated task failure"))
     }
 }
 
 @RegisterWorker
-class SampleRetryWorker(inputData: TaskData) : TaskWorker(inputData) {
+class SampleRetryWorker(inputData: TaskData) : TaskWorker(inputData = inputData) {
     override suspend fun doWork(): TaskResult {
-        setProgress(taskDataOf("status" to "Attempting run..."))
-        delay(1000.milliseconds)
+        setProgress(data = taskDataOf("status" to "Attempting run..."))
+        delay(duration = 1000.milliseconds)
         return TaskResult.Retry
     }
 }

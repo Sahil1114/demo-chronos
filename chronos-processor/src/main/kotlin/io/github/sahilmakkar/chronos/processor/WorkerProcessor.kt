@@ -48,7 +48,7 @@ internal class WorkerProcessor(
      * @return Empty list since all discovered symbols are processed in a single pass without deferred symbols.
      */
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val symbols = resolver.getSymbolsWithAnnotation("io.github.sahilmakkar.chronos.RegisterWorker")
+        val symbols = resolver.getSymbolsWithAnnotation(annotationName = "io.github.sahilmakkar.chronos.RegisterWorker")
         val workers = symbols.filterIsInstance<KSClassDeclaration>().toList()
 
         if (workers.isEmpty()) return emptyList()
@@ -69,7 +69,7 @@ internal class WorkerProcessor(
             for (worker in workers) {
                 val qualifiedName = worker.qualifiedName?.asString()
                 if (qualifiedName == null) {
-                    logger.warn("Skipping @RegisterWorker class with no qualified name", worker)
+                    logger.warn(message = "Skipping @RegisterWorker class with no qualified name", symbol = worker)
                     continue
                 }
                 val annotation = worker.annotations.firstOrNull {
@@ -87,7 +87,7 @@ internal class WorkerProcessor(
                 }
 
                 if (hasCustomFactory) {
-                    logger.info("$qualifiedName uses a custom factory, register manually")
+                    logger.info(message = "$qualifiedName uses a custom factory, register manually")
                     writer.write("    // $qualifiedName uses a custom factory, register manually\n")
                 } else {
                     writer.write("    register(\"$qualifiedName\") { $qualifiedName(it) }\n")
@@ -96,7 +96,7 @@ internal class WorkerProcessor(
             writer.write("}\n")
         }
 
-        logger.info("Generated registrations for ${workers.size} worker(s) -> GeneratedWorkers.kt")
+        logger.info(message = "Generated registrations for ${workers.size} worker(s) -> GeneratedWorkers.kt")
 
         return emptyList()
     }

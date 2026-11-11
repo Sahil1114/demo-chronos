@@ -24,7 +24,7 @@ internal actual class Daemon actual constructor(
             coordinator.sweepOrphans()
             coordinator.sweepChainRecovery()
         }
-        dueTimeLoop.start(coroutineScope)
+        dueTimeLoop.start(coroutineScope = coroutineScope)
     }
 
     actual fun stop() {

@@ -32,7 +32,7 @@ fun TaskCard(info: TaskInfo) {
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
-                StateChip(info.state)
+                StateChip(state = info.state)
             }
 
             Spacer(modifier = Modifier.height(4.dp))

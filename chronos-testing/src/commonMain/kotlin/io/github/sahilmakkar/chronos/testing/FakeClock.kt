@@ -32,7 +32,7 @@ public class FakeClock(public var nowMs: Long = 1000L) : Clock {
      *
      * @return Current virtual timestamp.
      */
-    public override fun now(): Instant = Instant.fromEpochMilliseconds(nowMs)
+    public override fun now(): Instant = Instant.fromEpochMilliseconds(epochMilliseconds = nowMs)
 
     /**
      * Advances the virtual clock forward by the specified number of milliseconds.

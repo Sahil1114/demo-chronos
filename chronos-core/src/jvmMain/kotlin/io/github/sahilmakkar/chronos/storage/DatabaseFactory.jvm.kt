@@ -22,7 +22,7 @@ internal actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabas
     dbFile.parentFile.mkdirs()
     return Room.databaseBuilder<ChronosDatabase>(
         name = dbFile.absolutePath
-    ).setDriver(BundledSQLiteDriver())
-        .setQueryCoroutineContext(Dispatchers.IO)
+    ).setDriver(driver = BundledSQLiteDriver())
+        .setQueryCoroutineContext(context = Dispatchers.IO)
         .build()
 }

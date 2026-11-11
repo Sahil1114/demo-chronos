@@ -224,7 +224,7 @@ public fun Chronos.Companion.shutdown(): Unit = ChronosRegistry.clear()
  *
  * @param instance The test-doubled or mock [Chronos] implementation to set as the active singleton.
  */
-public fun Chronos.Companion.setForTesting(instance: Chronos): Unit = ChronosRegistry.set(instance)
+public fun Chronos.Companion.setForTesting(instance: Chronos): Unit = ChronosRegistry.set(instance = instance)
 
 /**
  * Begins a fluent task execution chain starting with the specified task request.
@@ -243,4 +243,4 @@ public fun Chronos.Companion.setForTesting(instance: Chronos): Unit = ChronosReg
  * @return A new single-step [TaskChain] starting with [request].
  * @see TaskChain
  */
-public fun Chronos.beginWith(request: TaskRequest): TaskChain = TaskChain.start(request)
+public fun Chronos.beginWith(request: TaskRequest): TaskChain = TaskChain.start(request = request)

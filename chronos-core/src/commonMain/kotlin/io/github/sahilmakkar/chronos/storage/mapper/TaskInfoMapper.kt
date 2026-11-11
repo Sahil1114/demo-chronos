@@ -16,7 +16,7 @@ import io.github.sahilmakkar.chronos.task.model.fromJson
 internal fun TaskEntity.toTaskInfo(): TaskInfo = TaskInfo(
     id = id,
     state = state,
-    outputData = TaskData.fromJson(outputDataJson),
-    progress = TaskData.fromJson(progressDataJson),
+    outputData = TaskData.fromJson(json = outputDataJson),
+    progress = TaskData.fromJson(json = progressDataJson),
     runAttemptCount = runAttemptCount
 )

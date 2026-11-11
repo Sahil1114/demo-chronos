@@ -30,7 +30,7 @@ public actual fun Chronos.Companion.initialize(
     registry: WorkerRegistry
 ): Chronos {
     val impl = buildJvmChronos(support = support, registry = registry)
-    ChronosRegistry.set(impl)
+    ChronosRegistry.set(instance = impl)
     return impl
 }
 
@@ -45,7 +45,7 @@ public actual fun Chronos.Companion.initialize(
  * @return A fully assembled [ChronosEngine].
  */
 internal fun buildJvmChronos(support: PlatformSupport, registry: WorkerRegistry): ChronosEngine {
-    val db = createRoomDatabase(support)
+    val db = createRoomDatabase(support = support)
     val coroutineScope = CoroutineScope(context = SupervisorJob() + Dispatchers.Default)
     val networkChecker = JvmNetworkChecker()
 
@@ -59,7 +59,7 @@ internal fun buildJvmChronos(support: PlatformSupport, registry: WorkerRegistry)
     val daemon = Daemon(coroutineScope = coroutineScope, coordinator = coordinator, db = db)
     val enqueuer = ChronosTaskEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
     val canceller = ChronosTaskCanceller(db = db, coroutineScope = coroutineScope)
-    val taskStore = RoomTaskStore(db.taskDao())
+    val taskStore = RoomTaskStore(dao = db.taskDao())
 
     return ChronosEngine(
         registry = registry,

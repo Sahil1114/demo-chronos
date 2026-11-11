@@ -24,7 +24,12 @@ internal actual class Daemon actual constructor(
         db: ChronosDatabase,
         scheduler: IosBackgroundTaskScheduler,
         clock: Clock = Clock.System
-    ) : this(coroutineScope, coordinator, db, clock) {
+    ) : this(
+        coroutineScope = coroutineScope,
+        coordinator = coordinator,
+        db = db,
+        clock = clock
+    ) {
         this.scheduler = scheduler
     }
 
@@ -37,7 +42,7 @@ internal actual class Daemon actual constructor(
             coordinator.sweepOrphans()
             coordinator.sweepChainRecovery()
         }
-        dueTimeLoop.start(coroutineScope)
+        dueTimeLoop.start(coroutineScope = coroutineScope)
         requireScheduler().register()
     }
 

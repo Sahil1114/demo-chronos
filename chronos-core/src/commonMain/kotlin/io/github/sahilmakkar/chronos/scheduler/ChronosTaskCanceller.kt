@@ -33,9 +33,9 @@ internal class ChronosTaskCanceller(
     override fun cancelTaskById(id: String) {
         onCancelById?.invoke(id)
         coroutineScope.launch {
-            val updated = db.taskDao().cancelTaskIfActive(id)
+            val updated = db.taskDao().cancelTaskIfActive(id = id)
             if (updated > 0) {
-                cancelDownstream(id)
+                cancelDownstream(parentId = id)
             }
             wakeScheduler?.scheduleNextWake()
         }
@@ -49,10 +49,10 @@ internal class ChronosTaskCanceller(
     override fun cancelTaskByTag(tag: String) {
         onCancelByTag?.invoke(tag)
         coroutineScope.launch {
-            db.taskDao().getTaskIdsByTag(tag).forEach { id ->
-                val updated = db.taskDao().cancelTaskIfActive(id)
+            db.taskDao().getTaskIdsByTag(tag = tag).forEach { id ->
+                val updated = db.taskDao().cancelTaskIfActive(id = id)
                 if (updated > 0) {
-                    cancelDownstream(id)
+                    cancelDownstream(parentId = id)
                 }
             }
             wakeScheduler?.scheduleNextWake()
@@ -77,8 +77,8 @@ internal class ChronosTaskCanceller(
      * Recursively cancels all downstream dependent tasks of [parentId].
      */
     private suspend fun cancelDownstream(parentId: String) {
-        db.taskDao().getDependenciesForParent(parentId).forEach { dep ->
-            val updated = db.taskDao().cancelTaskIfActive(dep.childTaskId)
+        db.taskDao().getDependenciesForParent(parentTaskId = parentId).forEach { dep ->
+            val updated = db.taskDao().cancelTaskIfActive(id = dep.childTaskId)
             if (updated > 0) {
                 cancelDownstream(parentId = dep.childTaskId)
             }

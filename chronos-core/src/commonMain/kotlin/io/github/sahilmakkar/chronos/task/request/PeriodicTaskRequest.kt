@@ -54,12 +54,12 @@ public class PeriodicTaskRequest internal constructor(
      * @param repeatInterval Recurrence interval between successive task runs (must be greater than zero).
      */
     public class Builder(workerClass: KClass<out TaskWorker>, private val repeatInterval: Duration) :
-        TaskRequestBuilder<PeriodicTaskRequest, Builder>(workerClass) {
+        TaskRequestBuilder<PeriodicTaskRequest, Builder>(workerClass = workerClass) {
 
         override fun self(): Builder = this
 
         override fun validateSpecific() {
-            require(repeatInterval > Duration.ZERO) {
+            require(value = repeatInterval > Duration.ZERO) {
                 "repeatInterval must be greater than zero, was $repeatInterval"
             }
         }

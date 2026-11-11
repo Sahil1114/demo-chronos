@@ -51,7 +51,7 @@ public class OneTimeTaskRequest internal constructor(
      * @param workerClass Class reference of the [TaskWorker] that will perform the task.
      */
     public class Builder(workerClass: KClass<out TaskWorker>) :
-        TaskRequestBuilder<OneTimeTaskRequest, Builder>(workerClass) {
+        TaskRequestBuilder<OneTimeTaskRequest, Builder>(workerClass = workerClass) {
 
         override fun self(): Builder = this
 

@@ -31,7 +31,7 @@ public actual fun Chronos.Companion.initialize(
     registry: WorkerRegistry
 ): Chronos {
     val impl = buildIosChronos(support = support, registry = registry)
-    ChronosRegistry.set(impl)
+    ChronosRegistry.set(instance = impl)
     return impl
 }
 
@@ -46,15 +46,15 @@ public actual fun Chronos.Companion.initialize(
  * @return A fully assembled [ChronosEngine].
  */
 internal fun buildIosChronos(support: PlatformSupport, registry: WorkerRegistry): ChronosEngine {
-    val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val db = createRoomDatabase(support)
+    val coroutineScope = CoroutineScope(context = SupervisorJob() + Dispatchers.Default)
+    val db = createRoomDatabase(support = support)
     val networkChecker = IosNetworkChecker()
 
     val taskExecutor = InProcessTaskExecutor(db = db, registry = registry)
     val coordinator = TaskCoordinator(
         db = db,
         taskExecutor = taskExecutor,
-        constraintProvider = IosConstraintVerifier(networkChecker)
+        constraintProvider = IosConstraintVerifier(networkChecker = networkChecker)
     )
     val bgTaskScheduler by lazy {
         IosBackgroundTaskScheduler(
@@ -74,10 +74,10 @@ internal fun buildIosChronos(support: PlatformSupport, registry: WorkerRegistry)
         db = db,
         coroutineScope = coroutineScope,
         coordinator = coordinator,
-        onEnqueued = { bgTaskScheduler.scheduleForRequest(it) }
+        onEnqueued = { bgTaskScheduler.scheduleForRequest(request = it) }
     )
     val canceller = ChronosTaskCanceller(db = db, coroutineScope = coroutineScope)
-    val taskStore = RoomTaskStore(db.taskDao())
+    val taskStore = RoomTaskStore(dao = db.taskDao())
 
     return ChronosEngine(
         registry = registry,

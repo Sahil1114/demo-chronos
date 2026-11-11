@@ -28,7 +28,7 @@ internal class RoomTaskStore(
      * @return A [Flow] streaming the task's state changes.
      */
     override fun observeTask(id: String): Flow<TaskInfo?> =
-        dao.observeTask(id).map { it?.toTaskInfo() }
+        dao.observeTask(id = id).map { it?.toTaskInfo() }
 
     /**
      * Subscribes to database changes for all tasks bearing the specified [tag].
@@ -39,5 +39,5 @@ internal class RoomTaskStore(
      * @return A [Flow] streaming lists of task snapshots.
      */
     override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> =
-        dao.observeTasksByTag(tag).map { list -> list.map { it.toTaskInfo() } }
+        dao.observeTasksByTag(tag = tag).map { list -> list.map { it.toTaskInfo() } }
 }

@@ -31,6 +31,6 @@ internal class NetworkTypeConverter {
      */
     @ColumnTypeConverter
     fun toNetworkType(networkType: String): NetworkType {
-        return NetworkType.valueOf(networkType)
+        return NetworkType.valueOf(value = networkType)
     }
 }

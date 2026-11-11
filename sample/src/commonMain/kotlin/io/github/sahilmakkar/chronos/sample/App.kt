@@ -23,7 +23,7 @@ import kotlin.time.Duration
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App(chronos: Chronos) {
-    val tasks by chronos.observeTasksByTag("sample-task")
+    val tasks by chronos.observeTasksByTag(tag = "sample-task")
         .collectAsState(initial = emptyList())
 
     MaterialTheme(
@@ -72,7 +72,7 @@ fun App(chronos: Chronos) {
                         onClick = {
                             val req =
                                 OneTimeTaskRequest.Builder(workerClass = SampleSuccessWorker::class)
-                                    .addTag("sample-task")
+                                    .addTag(tag = "sample-task")
                                     .build()
                             chronos.enqueueTask(name = "sample-success-${req.id}", policy = UniqueTaskPolicy.REPLACE, request = req)
                         },
@@ -84,7 +84,7 @@ fun App(chronos: Chronos) {
                         onClick = {
                             val req =
                                 OneTimeTaskRequest.Builder(workerClass = SampleFailureWorker::class)
-                                    .addTag("sample-task")
+                                    .addTag(tag = "sample-task")
                                     .build()
                             chronos.enqueueTask(name = "sample-failure-${req.id}", policy = UniqueTaskPolicy.REPLACE, request = req)
                         },
@@ -173,7 +173,7 @@ fun App(chronos: Chronos) {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(tasks) { info ->
-                            TaskCard(info)
+                            TaskCard(info = info)
                         }
                     }
                 }

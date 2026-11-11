@@ -31,7 +31,7 @@ public actual fun Chronos.Companion.initialize(
     registry: WorkerRegistry
 ): Chronos {
     val impl = buildAndroidChronos(support = support, registry = registry)
-    ChronosRegistry.set(impl)
+    ChronosRegistry.set(instance = impl)
     return impl
 }
 
@@ -50,7 +50,7 @@ internal fun buildAndroidChronos(
     registry: WorkerRegistry
 ): ChronosEngine {
     val appContext = support.context.applicationContext
-    val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val coroutineScope = CoroutineScope(context = SupervisorJob() + Dispatchers.Default)
     val db = createRoomDatabase(support = support)
     val wakeScheduler = ChronosWakeScheduler(context = appContext, db = db)
 
@@ -73,7 +73,7 @@ internal fun buildAndroidChronos(
         coroutineScope = coroutineScope,
         wakeScheduler = wakeScheduler
     )
-    val taskStore = RoomTaskStore(db.taskDao())
+    val taskStore = RoomTaskStore(dao = db.taskDao())
 
     return ChronosEngine(
         registry = registry,

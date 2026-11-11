@@ -84,5 +84,5 @@ public data class TaskData(public val values: Map<String, Any> = emptyMap()) {
  * Constructs a [TaskData] instance from key-value pairs.
  */
 public fun taskDataOf(vararg pairs: Pair<String, Any>): TaskData {
-    return TaskData(pairs.toMap())
+    return TaskData(values = pairs.toMap())
 }

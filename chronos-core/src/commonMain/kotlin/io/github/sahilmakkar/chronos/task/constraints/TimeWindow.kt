@@ -25,13 +25,13 @@ public data class TimeWindow(
     public val timeZone: String = "UTC"
 ) {
     init {
-        require(startHour in 0..23) {
+        require(value = startHour in 0..23) {
             "startHour must be between 0 and 23, got $startHour"
         }
-        require(endHour in 0..24) {
+        require(value = endHour in 0..24) {
             "endHour must be between 0 and 24, got $endHour"
         }
-        require(startHour != endHour) {
+        require(value = startHour != endHour) {
             "startHour ($startHour) must not equal endHour ($endHour)"
         }
     }

@@ -23,7 +23,7 @@ import kotlin.time.Clock
  */
 internal class AndroidConstraintVerifier(
     private val context: Context,
-    networkChecker: NetworkChecker = AndroidNetworkChecker(context),
+    networkChecker: NetworkChecker = AndroidNetworkChecker(context = context),
     clock: Clock = Clock.System
 ) : BaseConstraintVerifier(networkChecker = networkChecker, clock = clock) {
 
@@ -34,8 +34,8 @@ internal class AndroidConstraintVerifier(
      * @return `true` if all constraints pass; `false` otherwise.
      */
     override fun isSatisfied(entity: TaskEntity): Boolean {
-        if (!verifyTimeWindow(entity)) return false
-        if (!verifyNetwork(entity)) return false
+        if (!verifyTimeWindow(entity = entity)) return false
+        if (!verifyNetwork(entity = entity)) return false
         if (entity.requiresCharging && !isCharging()) return false
         if (entity.requiresBatteryNotLow && !isBatteryNotLow()) return false
         return true

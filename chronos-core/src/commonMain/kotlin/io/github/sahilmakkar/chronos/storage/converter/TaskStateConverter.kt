@@ -31,6 +31,6 @@ internal class TaskStateConverter {
      */
     @ColumnTypeConverter
     fun toTaskState(taskState: String): TaskState {
-        return TaskState.valueOf(taskState)
+        return TaskState.valueOf(value = taskState)
     }
 }

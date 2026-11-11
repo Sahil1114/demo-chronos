@@ -22,7 +22,7 @@ import androidx.work.WorkerParameters
 public class ChronosWakeWorker(
     context: Context,
     workerParams: WorkerParameters
-) : CoroutineWorker(context, workerParams) {
+) : CoroutineWorker(appContext = context, params = workerParams) {
 
     /**
      * Executes the wake pass by delegating to [Chronos.runPendingTasksNow].

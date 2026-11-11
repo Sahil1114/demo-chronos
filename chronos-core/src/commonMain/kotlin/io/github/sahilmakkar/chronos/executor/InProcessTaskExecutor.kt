@@ -59,7 +59,7 @@ internal class InProcessTaskExecutor(
         return try {
             val timeout = entity.timeoutMs
             if (timeout != null && timeout > 0) {
-                withTimeout(timeout) { worker.doWork() }
+                withTimeout(timeMillis = timeout) { worker.doWork() }
             } else {
                 worker.doWork()
             }

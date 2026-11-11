@@ -6,6 +6,6 @@ import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.worker.TaskWorker
 
 @RegisterWorker
-class SampleAdditionalWorker(inputData: TaskData) : TaskWorker(inputData) {
+class SampleAdditionalWorker(inputData: TaskData) : TaskWorker(inputData = inputData) {
     override suspend fun doWork(): TaskResult = TaskResult.Success()
 }

@@ -10,13 +10,13 @@ import kotlinx.serialization.json.*
 internal fun TaskData.toJson(): String {
     val jsonMap = values.mapValues { (_, value) ->
         when (value) {
-            is String -> JsonPrimitive(value)
-            is Number -> JsonPrimitive(value)
-            is Boolean -> JsonPrimitive(value)
+            is String -> JsonPrimitive(value = value)
+            is Number -> JsonPrimitive(value = value)
+            is Boolean -> JsonPrimitive(value = value)
             else -> JsonNull
         }
     }
-    return Json.encodeToString(serializer = JsonObject.serializer(), value = JsonObject(jsonMap))
+    return Json.encodeToString(serializer = JsonObject.serializer(), value = JsonObject(content = jsonMap))
 }
 
 /**
@@ -28,7 +28,7 @@ internal fun TaskData.Companion.fromJson(json: String): TaskData {
     if (json.isBlank()) return TaskData()
 
     return try {
-        val jsonObject = Json.decodeFromString(JsonObject.serializer(), json)
+        val jsonObject = Json.decodeFromString(deserializer = JsonObject.serializer(), string = json)
         val map = buildMap {
             jsonObject.forEach { (key, jsonElement) ->
                 if (jsonElement is JsonPrimitive && jsonElement !is JsonNull) {
@@ -45,7 +45,7 @@ internal fun TaskData.Companion.fromJson(json: String): TaskData {
             }
         }
 
-        TaskData(map)
+        TaskData(values = map)
     } catch (e: Exception) {
         TaskData()
     }

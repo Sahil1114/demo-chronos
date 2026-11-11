@@ -25,7 +25,7 @@ internal class ChronosWakeScheduler(
     private val context: Context,
     private val db: ChronosDatabase,
     private val clock: Clock = Clock.System,
-    private val workManager: WorkManager = WorkManager.getInstance(context)
+    private val workManager: WorkManager = WorkManager.getInstance(context = context)
 ) : WakeScheduler {
 
     /**
@@ -39,14 +39,14 @@ internal class ChronosWakeScheduler(
      */
     override suspend fun scheduleNextWake() {
         val states = listOf(TaskState.ENQUEUED, TaskState.RETRYING)
-        val nextTask = db.taskDao().getNextDueTask(states)
+        val nextTask = db.taskDao().getNextDueTask(states = states)
         if (nextTask == null) {
             cancelWake()
             return
         }
 
         val nowMs = clock.now().toEpochMilliseconds()
-        val delayMs = maxOf(0L, nextTask.scheduledAt - nowMs)
+        val delayMs = maxOf(a = 0L, b = nextTask.scheduledAt - nowMs)
 
         val constraintsBuilder = Constraints.Builder()
         when (nextTask.networkType) {
@@ -68,14 +68,14 @@ internal class ChronosWakeScheduler(
         }
 
         val request = OneTimeWorkRequestBuilder<ChronosWakeWorker>()
-            .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
-            .setConstraints(constraintsBuilder.build())
+            .setInitialDelay(duration = delayMs, timeUnit = TimeUnit.MILLISECONDS)
+            .setConstraints(constraints = constraintsBuilder.build())
             .build()
 
         workManager.enqueueUniqueWork(
-            WAKE_WORK_NAME,
-            ExistingWorkPolicy.REPLACE,
-            request
+            uniqueWorkName = WAKE_WORK_NAME,
+            existingWorkPolicy = ExistingWorkPolicy.REPLACE,
+            request = request
         )
     }
 
@@ -83,7 +83,7 @@ internal class ChronosWakeScheduler(
      * Cancels any pending unique [ChronosWakeWorker] enqueued in Android WorkManager.
      */
     override fun cancelWake() {
-        workManager.cancelUniqueWork(WAKE_WORK_NAME)
+        workManager.cancelUniqueWork(uniqueWorkName = WAKE_WORK_NAME)
     }
 
     companion object {

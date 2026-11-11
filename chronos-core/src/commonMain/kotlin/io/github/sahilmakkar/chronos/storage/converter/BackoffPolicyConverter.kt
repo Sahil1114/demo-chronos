@@ -30,6 +30,6 @@ internal class BackoffPolicyConverter {
      */
     @ColumnTypeConverter
     fun toBackoffPolicy(backoffPolicy: String): BackoffPolicy {
-        return BackoffPolicy.valueOf(backoffPolicy)
+        return BackoffPolicy.valueOf(value = backoffPolicy)
     }
 }

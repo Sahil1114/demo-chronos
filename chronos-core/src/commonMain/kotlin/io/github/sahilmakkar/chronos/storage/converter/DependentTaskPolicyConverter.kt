@@ -31,6 +31,6 @@ internal class DependentTaskPolicyConverter {
      */
     @ColumnTypeConverter
     fun toDependentTaskPolicy(dependentTaskPolicy: String): DependentTaskPolicy {
-        return DependentTaskPolicy.valueOf(dependentTaskPolicy)
+        return DependentTaskPolicy.valueOf(value = dependentTaskPolicy)
     }
 }

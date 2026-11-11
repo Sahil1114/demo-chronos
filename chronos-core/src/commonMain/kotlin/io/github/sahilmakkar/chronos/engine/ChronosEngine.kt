@@ -4,6 +4,7 @@ import io.github.sahilmakkar.chronos.Chronos
 import io.github.sahilmakkar.chronos.port.TaskCanceller
 import io.github.sahilmakkar.chronos.port.TaskEnqueuer
 import io.github.sahilmakkar.chronos.port.TaskStore
+import io.github.sahilmakkar.chronos.scheduler.WakeScheduler
 import io.github.sahilmakkar.chronos.storage.ChronosDatabase
 import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
@@ -11,12 +12,12 @@ import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
-import io.github.sahilmakkar.chronos.scheduler.WakeScheduler
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -44,9 +45,8 @@ internal class ChronosEngine(
     private val canceller: TaskCanceller,
     private val taskStore: TaskStore,
     private val onClose: () -> Unit = {},
-    val wakeScheduler: WakeScheduler? = null
+    val wakeScheduler: WakeScheduler? = null,
 ) : Chronos {
-
     init {
         daemon.start()
     }
@@ -54,26 +54,26 @@ internal class ChronosEngine(
     override fun enqueueTask(
         name: String,
         policy: UniqueTaskPolicy,
-        request: OneTimeTaskRequest
-    ) = enqueuer.enqueueTask(name, policy, request)
+        request: OneTimeTaskRequest,
+    ) = enqueuer.enqueueTask(name = name, policy = policy, request = request)
 
     override fun enqueuePeriodicTask(
         name: String,
         policy: UniqueTaskPolicy,
-        request: PeriodicTaskRequest
-    ) = enqueuer.enqueuePeriodicTask(name, policy, request)
+        request: PeriodicTaskRequest,
+    ) = enqueuer.enqueuePeriodicTask(name = name, policy = policy, request = request)
 
-    override fun enqueue(chain: TaskChain) = enqueuer.enqueue(chain)
+    override fun enqueue(chain: TaskChain) = enqueuer.enqueue(chain = chain)
 
-    override fun cancelTaskById(id: String) = canceller.cancelTaskById(id)
-    override fun cancelTaskByTag(tag: String) = canceller.cancelTaskByTag(tag)
+    override fun cancelTaskById(id: String) = canceller.cancelTaskById(id = id)
+
+    override fun cancelTaskByTag(tag: String) = canceller.cancelTaskByTag(tag = tag)
+
     override fun cancelAllTasks() = canceller.cancelAllTasks()
 
-    override fun observeTask(id: String): Flow<TaskInfo?> =
-        taskStore.observeTask(id)
+    override fun observeTask(id: String): Flow<TaskInfo?> = taskStore.observeTask(id = id)
 
-    override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> =
-        taskStore.observeTasksByTag(tag)
+    override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> = taskStore.observeTasksByTag(tag = tag)
 
     override suspend fun runPendingTasksNow() {
         coordinator.runPendingTasks()
@@ -88,7 +88,7 @@ internal class ChronosEngine(
         val job = coroutineScope.coroutineContext[Job]
         job?.cancel()
         runBlocking {
-            job?.children?.toList()?.forEach { it.join() }
+            job?.children?.toList()?.joinAll()
         }
         onClose()
     }

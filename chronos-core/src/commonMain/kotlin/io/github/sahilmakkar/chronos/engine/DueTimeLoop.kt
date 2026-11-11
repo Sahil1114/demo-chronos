@@ -41,7 +41,7 @@ internal class DueTimeLoop(
     private var loopJob: Job? = null
 
     fun start(coroutineScope: CoroutineScope) {
-        val wakeChannel = Channel<Unit>(Channel.CONFLATED)
+        val wakeChannel = Channel<Unit>(capacity = Channel.CONFLATED)
 
         loopJob = coroutineScope.launch {
             val states = listOf(TaskState.ENQUEUED, TaskState.RETRYING)
@@ -53,18 +53,18 @@ internal class DueTimeLoop(
             }
 
             try {
-                db.taskDao().observeNextDueAt(states).distinctUntilChanged().collectLatest { nextDueAt ->
+                db.taskDao().observeNextDueAt(states = states).distinctUntilChanged().collectLatest { nextDueAt ->
                     if (nextDueAt == null) return@collectLatest
 
                     val nowMs = clock.now().toEpochMilliseconds()
                     val delayMs = nextDueAt - nowMs
                     if (delayMs > 0) {
-                        delay(delayMs)
+                        delay(timeMillis = delayMs)
                     }
 
                     while (isActive) {
                         wakeChannel.send(Unit)
-                        delay(blockedRecheckInterval)
+                        delay(duration = blockedRecheckInterval)
                     }
                 }
             } catch (e: CancellationException) {

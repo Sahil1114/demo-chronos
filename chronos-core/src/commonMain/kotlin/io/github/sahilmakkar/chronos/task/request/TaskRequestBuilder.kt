@@ -31,7 +31,7 @@ import kotlin.uuid.Uuid
  * @property workerClass Kotlin reflection reference to the [TaskWorker] implementation class.
  */
 public sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T, B>>(
-    private val workerClass: KClass<out TaskWorker>
+    private val workerClass: KClass<out TaskWorker>,
 ) {
     protected var id: String = Uuid.random().toString()
     protected var inputData: TaskData = taskDataOf()
@@ -53,8 +53,7 @@ public sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T
     /**
      * Sets environmental requirements (network, battery, charging, time window) for executing this task.
      */
-    public fun setConstraints(constraints: EnvironmentConstraints): B =
-        self().also { this.constraints = constraints }
+    public fun setConstraints(constraints: EnvironmentConstraints): B = self().also { this.constraints = constraints }
 
     /**
      * Sets the duration to wait before the task first becomes eligible for execution.
@@ -73,7 +72,11 @@ public sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T
      * @param initialDelay Base duration multiplier used by the backoff algorithm.
      * @param maxRetries Maximum number of retries permitted after initial failure (allowing `maxRetries + 1` total attempts).
      */
-    public fun setBackoffCriteria(policy: BackoffPolicy, initialDelay: Duration, maxRetries: Int): B =
+    public fun setBackoffCriteria(
+        policy: BackoffPolicy,
+        initialDelay: Duration,
+        maxRetries: Int,
+    ): B =
         self().also {
             this.backoffPolicy = policy
             this.backoffDelay = initialDelay
@@ -86,24 +89,27 @@ public sealed class TaskRequestBuilder<T : TaskRequest, B : TaskRequestBuilder<T
     public fun addTag(tag: String): B = self().also { this.tags.add(tag) }
 
     protected val resolvedWorkerClassName: String
-        get() = workerClass.qualifiedName
-            ?: throw IllegalArgumentException("Worker class must have a qualified name")
+        get() =
+            workerClass.qualifiedName
+                ?: throw IllegalArgumentException("Worker class must have a qualified name")
 
     private fun validateCommon() {
-        require(id.isNotBlank()) {
+        require(value = id.isNotBlank()) {
             "id must not be blank"
         }
-        require(maxRetries >= 0) {
+        require(value = maxRetries >= 0) {
             "maxRetries must be >= 0, was $maxRetries"
         }
-        require(!backoffDelay.isNegative()) {
+        require(value = !backoffDelay.isNegative()) {
             "backoffDelay must not be negative"
         }
-        require(!initialDelay.isNegative()) {
+        require(value = !initialDelay.isNegative()) {
             "initialDelay must not be negative"
         }
-        timeout?.let { require(!it.isNegative()) {
-            "timeout must not be negative" }
+        timeout?.let {
+            require(value = !it.isNegative()) {
+                "timeout must not be negative"
+            }
         }
     }
 

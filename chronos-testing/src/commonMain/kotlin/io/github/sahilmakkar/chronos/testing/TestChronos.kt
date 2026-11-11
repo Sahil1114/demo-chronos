@@ -79,7 +79,7 @@ public class TestChronos(
     private fun enqueueInternal(request: TaskRequest) {
         enqueuedRequests.add(request)
         taskTags[request.id] = request.tags
-        updateTaskInfo(request.id, TaskState.ENQUEUED)
+        updateTaskInfo(id = request.id, state = TaskState.ENQUEUED)
     }
 
     /**
@@ -140,7 +140,7 @@ public class TestChronos(
      */
     public override fun cancelTaskByTag(tag: String) {
         val idsToCancel = taskTags.filter { (_, tags) -> tag in tags }.keys
-        idsToCancel.forEach { cancelTaskById(it) }
+        idsToCancel.forEach { cancelTaskById(id = it) }
     }
 
     /**
@@ -195,9 +195,9 @@ public class TestChronos(
         val iterator = enqueuedRequests.iterator()
         while (iterator.hasNext()) {
             val req = iterator.next()
-            updateTaskInfo(req.id, TaskState.RUNNING)
+            updateTaskInfo(id = req.id, state = TaskState.RUNNING)
             try {
-                val worker = registry.createWorker(req.workerClassName, req.taskData)
+                val worker = registry.createWorker(className = req.workerClassName, inputData = req.taskData)
                 val res = worker.doWork()
                 when (res) {
                     is TaskResult.Success -> updateTaskInfo(

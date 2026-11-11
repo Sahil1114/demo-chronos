@@ -25,7 +25,7 @@ import kotlin.time.Clock
 internal class IosConstraintVerifier(
     networkChecker: NetworkChecker,
     clock: Clock = Clock.System
-) : BaseConstraintVerifier(networkChecker, clock) {
+) : BaseConstraintVerifier(networkChecker = networkChecker, clock = clock) {
 
     /**
      * Ensures battery monitoring is activated on [UIDevice.currentDevice].
@@ -43,11 +43,11 @@ internal class IosConstraintVerifier(
      * @return `true` if all constraints pass; `false` otherwise.
      */
     override fun isSatisfied(entity: TaskEntity): Boolean {
-        if (!verifyNetwork(entity)) return false
+        if (!verifyNetwork(entity = entity)) return false
         if (entity.requiresCharging && !isCharging()) return false
         if (entity.requiresBatteryNotLow && !isBatteryNotLow()) return false
         if (entity.requiresStorageNotLow && !isStorageNotLow()) return false
-        if (!verifyTimeWindow(entity)) return false
+        if (!verifyTimeWindow(entity = entity)) return false
         return true
     }
 

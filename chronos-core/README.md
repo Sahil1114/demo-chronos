@@ -176,15 +176,12 @@ val request = OneTimeTaskRequestBuilder<SyncWorker>()
     .addTag("sync_jobs")
     .build()
 
-Chronos.instance.enqueue(request)
-```
-
-#### Unique Work
-Avoid redundant duplicate tasks using unique work policies:
+#### Enqueue Task
+Enqueue a one-time task with a unique identifier and collision policy:
 ```kotlin
 import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 
-Chronos.instance.enqueueUniqueTask(
+Chronos.instance.enqueueTask(
     name = "nightly_data_sync",
     policy = UniqueTaskPolicy.KEEP, // Options: KEEP, REPLACE, APPEND
     request = request
@@ -200,7 +197,7 @@ val periodicRequest = PeriodicTaskRequestBuilder<SyncWorker>(repeatInterval = 1.
     .setInputData(taskDataOf("sync_type" to "hourly"))
     .build()
 
-Chronos.instance.enqueueUniquePeriodicTask(
+Chronos.instance.enqueuePeriodicTask(
     name = "hourly_sync",
     policy = UniqueTaskPolicy.REPLACE,
     request = periodicRequest

@@ -17,9 +17,8 @@ public final class io/github/sahilmakkar/chronos/testing/TestChronos : io/github
 	public fun cancelTaskByTag (Ljava/lang/String;)V
 	public fun close ()V
 	public fun enqueue (Lio/github/sahilmakkar/chronos/task/TaskChain;)V
-	public fun enqueue (Lio/github/sahilmakkar/chronos/task/request/TaskRequest;)V
-	public fun enqueueUniquePeriodicTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/PeriodicTaskRequest;)V
-	public fun enqueueUniqueTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/OneTimeTaskRequest;)V
+	public fun enqueuePeriodicTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/PeriodicTaskRequest;)V
+	public fun enqueueTask (Ljava/lang/String;Lio/github/sahilmakkar/chronos/task/policy/UniqueTaskPolicy;Lio/github/sahilmakkar/chronos/task/request/OneTimeTaskRequest;)V
 	public final fun getEnqueuedRequests ()Ljava/util/List;
 	public fun getRegistry ()Lio/github/sahilmakkar/chronos/worker/WorkerRegistry;
 	public fun observeTask (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;

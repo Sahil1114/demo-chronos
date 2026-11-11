@@ -10,6 +10,15 @@ import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
+/**
+ * Constructs an Apple/iOS Room database instance backed by SQLite.
+ *
+ * Locates the application sandbox `NSDocumentDirectory` via [NSFileManager], constructs the database
+ * path at `<Documents>/chronos_work.db`, configures [BundledSQLiteDriver], and binds queries to [Dispatchers.IO].
+ *
+ * @param support Platform support provider for Apple Darwin environments.
+ * @return An initialized [ChronosDatabase] ready for concurrent task access.
+ */
 @OptIn(ExperimentalForeignApi::class)
 internal actual fun createRoomDatabase(support: PlatformSupport): ChronosDatabase {
     val documentDirectory = NSFileManager.defaultManager.URLForDirectory(

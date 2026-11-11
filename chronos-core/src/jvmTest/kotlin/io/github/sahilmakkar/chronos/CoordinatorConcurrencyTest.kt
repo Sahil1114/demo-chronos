@@ -4,6 +4,7 @@ import io.github.sahilmakkar.chronos.engine.TaskCoordinator
 import io.github.sahilmakkar.chronos.storage.mapper.toEntity
 import io.github.sahilmakkar.chronos.task.TaskResult
 import io.github.sahilmakkar.chronos.task.TaskState
+import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -45,7 +46,7 @@ class CoordinatorConcurrencyTest {
         val j1 = launch(Dispatchers.Default) { h.coordinator.runPendingTasks() }
         val j2 = launch(Dispatchers.Default) { h.coordinator.runPendingTasks() }
         val j3 = launch(Dispatchers.Default) {
-            h.enqueuer.enqueue(t2)
+            h.enqueuer.enqueueTask(t2.id, UniqueTaskPolicy.KEEP, t2)
         }
         joinAll(j1, j2, j3)
         h.coordinator.runPendingTasks()

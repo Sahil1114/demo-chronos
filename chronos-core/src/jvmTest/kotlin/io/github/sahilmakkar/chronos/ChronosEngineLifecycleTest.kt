@@ -51,10 +51,9 @@ class ChronosEngineLifecycleTest {
         val daemon = Daemon(scope, coordinator, db)
 
         val enqueuer = object : TaskEnqueuer {
-            override fun enqueue(request: TaskRequest) {}
             override fun enqueue(chain: io.github.sahilmakkar.chronos.task.TaskChain) {}
-            override fun enqueueUniqueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {}
-            override fun enqueueUniquePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {}
+            override fun enqueueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {}
+            override fun enqueuePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {}
         }
         val canceller = object : TaskCanceller {
             override fun cancelTaskById(id: String) {}

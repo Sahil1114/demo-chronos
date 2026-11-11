@@ -5,11 +5,23 @@ import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.model.toJson
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
 
+/**
+ * Converts a high-level public [TaskRequest] specification into a persistable [TaskEntity] database record.
+ *
+ * Maps all user-configured parameters into database columns:
+ * - Initializes state to [TaskState.ENQUEUED].
+ * - Serializes input [TaskData] into JSON.
+ * - Extracts millisecond values for timeouts, delays, and backoff durations.
+ * - Flattens nested [io.github.sahilmakkar.chronos.task.constraints.EnvironmentConstraints] (network, battery, storage, time window).
+ * - Binds optional unique names, chain grouping identifiers, and sequential chain ordering.
+ *
+ * @param scheduledAt Epoch millisecond timestamp when this task becomes eligible for dispatch.
+ * @param uniqueName Optional unique task name if enqueued via unique task APIs.
+ * @return A fully populated [TaskEntity] ready for insertion into Room SQLite.
+ */
 internal fun TaskRequest.toEntity(
     scheduledAt: Long,
     uniqueName: String? = null,
-    chainId: String? = null,
-    chainOrder: Int = 0
 ): TaskEntity = TaskEntity(
     id = id,
     workerClassName = workerClassName,
@@ -19,8 +31,6 @@ internal fun TaskRequest.toEntity(
     runAttemptCount = 0,
     timeoutMs = timeout?.inWholeMilliseconds,
     scheduledAt = scheduledAt,
-    chainId = chainId,
-    chainOrder = chainOrder,
     inputDataJson = taskData.toJson(),
     outputDataJson = "{}",
     progressDataJson = "{}",

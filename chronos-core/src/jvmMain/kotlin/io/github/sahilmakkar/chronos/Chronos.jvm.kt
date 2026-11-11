@@ -14,6 +14,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
+/**
+ * JVM platform entry point implementing [Chronos.Companion.initialize].
+ *
+ * Initializes the Room SQLite database on disk (`~/.chronos/chronos_work.db`),
+ * configures JVM constraint verification, launches the background [Daemon] polling loop,
+ * and publishes the singleton instance accessible via [Chronos.Companion.instance].
+ *
+ * @param support JVM platform support provider.
+ * @param registry Worker registry containing registered worker factories.
+ * @return The initialized [Chronos] engine instance.
+ */
 public actual fun Chronos.Companion.initialize(
     support: PlatformSupport,
     registry: WorkerRegistry
@@ -23,6 +34,16 @@ public actual fun Chronos.Companion.initialize(
     return impl
 }
 
+/**
+ * Assembles and wires together the JVM runtime dependencies for [ChronosEngine].
+ *
+ * Wires the Room database, background coroutine scopes, [TaskCoordinator],
+ * [Daemon], [ChronosTaskEnqueuer], [ChronosTaskCanceller], and [RoomTaskStore].
+ *
+ * @param support Platform support provider for JVM environments.
+ * @param registry Registered worker mapping.
+ * @return A fully assembled [ChronosEngine].
+ */
 internal fun buildJvmChronos(support: PlatformSupport, registry: WorkerRegistry): ChronosEngine {
     val db = createRoomDatabase(support)
     val coroutineScope = CoroutineScope(context = SupervisorJob() + Dispatchers.Default)

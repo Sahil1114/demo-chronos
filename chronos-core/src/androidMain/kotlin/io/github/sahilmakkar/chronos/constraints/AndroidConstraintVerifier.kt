@@ -10,12 +10,29 @@ import io.github.sahilmakkar.chronos.port.NetworkChecker
 import io.github.sahilmakkar.chronos.storage.TaskEntity
 import kotlin.time.Clock
 
+/**
+ * Android implementation of [ConstraintVerifier] evaluating device battery, storage, and network state.
+ *
+ * Interrogates Android framework system services:
+ * - [android.net.ConnectivityManager] via [AndroidNetworkChecker] for active and unmetered network links.
+ * - [BatteryManager] and sticky [Intent.ACTION_BATTERY_CHANGED] broadcasts for charging status and capacity.
+ *
+ * @param context Android application context used to query system managers.
+ * @param networkChecker Network connectivity verifier. Defaults to [AndroidNetworkChecker].
+ * @param clock Time provider for evaluating time windows. Defaults to [Clock.System].
+ */
 internal class AndroidConstraintVerifier(
     private val context: Context,
     networkChecker: NetworkChecker = AndroidNetworkChecker(context),
     clock: Clock = Clock.System
 ) : BaseConstraintVerifier(networkChecker = networkChecker, clock = clock) {
 
+    /**
+     * Checks if all constraints defined on [entity] are met on Android.
+     *
+     * @param entity The task record containing constraints to check.
+     * @return `true` if all constraints pass; `false` otherwise.
+     */
     override fun isSatisfied(entity: TaskEntity): Boolean {
         if (!verifyTimeWindow(entity)) return false
         if (!verifyNetwork(entity)) return false
@@ -24,6 +41,13 @@ internal class AndroidConstraintVerifier(
         return true
     }
 
+    /**
+     * Queries battery status to check whether the device is currently plugged into AC/USB/wireless power.
+     *
+     * Uses [BatteryManager.isCharging] on API 23+, falling back to sticky battery broadcast inspection.
+     *
+     * @return `true` if charging or full; `false` otherwise.
+     */
     private fun isCharging(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
@@ -34,6 +58,14 @@ internal class AndroidConstraintVerifier(
         return status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
     }
 
+    /**
+     * Checks whether remaining battery capacity is above the low-battery threshold (> 15%).
+     *
+     * Queries [BatteryManager.EXTRA_BATTERY_LOW] on API 28+, calculates percentage from level/scale,
+     * or queries [BatteryManager.BATTERY_PROPERTY_CAPACITY].
+     *
+     * @return `true` if battery level exceeds 15%; `false` otherwise.
+     */
     private fun isBatteryNotLow(): Boolean {
         val intent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

@@ -1,5 +1,6 @@
 package io.github.sahilmakkar.chronos
 
+import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -44,7 +45,7 @@ class ConcurrencyTest {
 
         val enqueueJobs = requests.map { req ->
             launch(Dispatchers.Default) {
-                h.enqueuer.enqueue(req)
+                h.enqueuer.enqueueTask(req.id, UniqueTaskPolicy.KEEP, req)
             }
         }
         enqueueJobs.forEach { it.join() }

@@ -8,7 +8,27 @@ import kotlin.reflect.KClass
 import kotlin.time.Duration
 
 /**
- * Task request executed once when its conditions and scheduled time are satisfied.
+ * Non-recurring task request designed to execute once when its scheduled time, dependencies,
+ * and environment constraints are satisfied.
+ *
+ * Once successfully completed, the task transitions to [io.github.sahilmakkar.chronos.task.TaskState.SUCCEEDED]
+ * and will not run again. If execution fails, it retries up to [maxRetries] times according to its
+ * [backoffPolicy] before reaching [io.github.sahilmakkar.chronos.task.TaskState.FAILED].
+ *
+ * Instances are created via [OneTimeTaskRequest.Builder].
+ *
+ * ### Example:
+ * ```kotlin
+ * val uploadRequest = OneTimeTaskRequest.Builder(UploadWorker::class)
+ *     .setInputData(taskDataOf("filePath" to "/data/log.txt"))
+ *     .setInitialDelay(5.minutes)
+ *     .setConstraints(EnvironmentConstraints(requiredNetworkType = NetworkType.UNMETERED))
+ *     .addTag("telemetry")
+ *     .build()
+ * ```
+ *
+ * @see PeriodicTaskRequest
+ * @see TaskRequestBuilder
  */
 public class OneTimeTaskRequest internal constructor(
     override val id: String,
@@ -27,6 +47,8 @@ public class OneTimeTaskRequest internal constructor(
 
     /**
      * Builder for constructing a [OneTimeTaskRequest].
+     *
+     * @param workerClass Class reference of the [TaskWorker] that will perform the task.
      */
     public class Builder(workerClass: KClass<out TaskWorker>) :
         TaskRequestBuilder<OneTimeTaskRequest, Builder>(workerClass) {

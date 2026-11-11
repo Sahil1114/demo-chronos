@@ -15,6 +15,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
+/**
+ * Apple platform entry point implementing [Chronos.Companion.initialize].
+ *
+ * Initializes the Room SQLite database in the application documents sandbox (`<Documents>/chronos_work.db`),
+ * configures Apple `BGTaskScheduler` background refresh handling via [IosBackgroundTaskScheduler],
+ * initializes [IosConstraintVerifier], and publishes the singleton instance accessible via [Chronos.Companion.instance].
+ *
+ * @param support Apple platform support provider.
+ * @param registry Worker registry containing registered worker factories.
+ * @return The initialized [Chronos] engine instance.
+ */
 public actual fun Chronos.Companion.initialize(
     support: PlatformSupport,
     registry: WorkerRegistry
@@ -24,6 +35,16 @@ public actual fun Chronos.Companion.initialize(
     return impl
 }
 
+/**
+ * Assembles and wires together the Apple/iOS runtime dependencies for [ChronosEngine].
+ *
+ * Wires the Room database, background coroutine scopes, [IosBackgroundTaskScheduler],
+ * [TaskCoordinator], [Daemon], [ChronosTaskEnqueuer], [ChronosTaskCanceller], and [RoomTaskStore].
+ *
+ * @param support Apple platform support provider.
+ * @param registry Registered worker mapping.
+ * @return A fully assembled [ChronosEngine].
+ */
 internal fun buildIosChronos(support: PlatformSupport, registry: WorkerRegistry): ChronosEngine {
     val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val db = createRoomDatabase(support)

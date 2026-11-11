@@ -11,7 +11,6 @@ import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.fromJson
 import io.github.sahilmakkar.chronos.task.model.taskDataOf
 import io.github.sahilmakkar.chronos.task.model.toJson
-import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
@@ -53,7 +52,7 @@ internal class TaskCoordinator(
     private val wakeScheduler: WakeScheduler? = null
 ) {
 
-    private val semaphore = Semaphore(maxConcurrentTasks)
+    private val semaphore = Semaphore(permits = maxConcurrentTasks)
 
     /**
      * Resets any stranded [TaskState.RUNNING] tasks back to [TaskState.ENQUEUED].
@@ -106,14 +105,16 @@ internal class TaskCoordinator(
         while (true) {
             currentCoroutineContext().ensureActive()
             val nowMs = clock.now().toEpochMilliseconds()
-            val pending = db.taskDao().getTasksByState(TaskState.ENQUEUED) +
-                    db.taskDao().getTasksByState(TaskState.RETRYING)
+            val pending = db.taskDao().getTasksByState(state = TaskState.ENQUEUED) +
+                    db.taskDao().getTasksByState(state = TaskState.RETRYING)
 
             val eligible = pending.filter { entity ->
-                entity.scheduledAt <= nowMs &&
-                        resolveDependencies(entity = entity) &&
-                        constraintProvider.isSatisfied(entity)
-            }.sortedBy { it.scheduledAt }
+                entity.scheduledAt <= nowMs
+                        && resolveDependencies(entity = entity)
+                        && constraintProvider.isSatisfied(entity = entity)
+            }.sortedBy {
+                it.scheduledAt
+            }
 
             if (eligible.isEmpty()) {
                 break
@@ -121,6 +122,7 @@ internal class TaskCoordinator(
 
             var claimedInPass = 0
             val passMutex = Mutex()
+
             coroutineScope {
                 for (entity in eligible) {
                     launch {
@@ -135,7 +137,10 @@ internal class TaskCoordinator(
                             passMutex.withLock { claimedInPass++ }
                             val attemptCount = entity.runAttemptCount + 1
                             db.taskDao().updateRunAttemptCount(id = entity.id, count = attemptCount)
-                            val runningEntity = entity.copy(state = TaskState.RUNNING, runAttemptCount = attemptCount)
+                            val runningEntity = entity.copy(
+                                state = TaskState.RUNNING,
+                                runAttemptCount = attemptCount
+                            )
 
                             try {
                                 val inputData = TaskData.fromJson(runningEntity.inputDataJson)
@@ -145,13 +150,18 @@ internal class TaskCoordinator(
                                 withContext(NonCancellable) {
                                     val current = db.taskDao().getTask(runningEntity.id)
                                     if (current != null && current.state != TaskState.CANCELLED) {
-                                        db.taskDao().updateTaskState(id = runningEntity.id, state = TaskState.ENQUEUED)
+                                        db.taskDao().updateTaskState(
+                                            id = runningEntity.id,
+                                            state = TaskState.ENQUEUED
+                                        )
                                     }
                                 }
                                 throw e
                             } catch (e: Exception) {
                                 val failureResult = TaskResult.Failure(
-                                    outputData = taskDataOf("error" to (e.message ?: "Task execution failed"))
+                                    outputData = taskDataOf(
+                                        "error" to (e.message ?: "Task execution failed")
+                                    )
                                 )
                                 handleResult(runningEntity, failureResult)
                             }
@@ -230,7 +240,8 @@ internal class TaskCoordinator(
                         db.taskDao().updateRunAttemptCount(id = entity.id, count = 0)
                         db.taskDao().updateScheduledAt(
                             id = entity.id,
-                            scheduledAt = clock.now().toEpochMilliseconds() + entity.repeatIntervalMs
+                            scheduledAt = clock.now()
+                                .toEpochMilliseconds() + entity.repeatIntervalMs
                         )
                         db.taskDao().updateTaskStateAndOutput(
                             id = entity.id,
@@ -262,23 +273,27 @@ internal class TaskCoordinator(
      * Evaluates parent task states for a child task in a chain, returning true if all parents succeeded or continued.
      */
     private suspend fun resolveDependencies(entity: TaskEntity): Boolean {
-        val deps = db.taskDao().getDependenciesForChild(entity.id)
-        for (dep in deps) {
-            val parent = db.taskDao().getTask(dep.parentTaskId) ?: return false
+        val deps = db.taskDao().getDependenciesForChild(childTaskId = entity.id)
+        for ((parentTaskId, _, chainFailurePolicy) in deps) {
+            val parent = db.taskDao().getTask(parentTaskId) ?: return false
             when (parent.state) {
+
                 TaskState.SUCCEEDED -> continue
+
                 TaskState.FAILED -> {
-                    if (dep.chainFailurePolicy == DependentTaskPolicy.STOP_ON_FAILURE) {
+                    if (chainFailurePolicy == DependentTaskPolicy.STOP_ON_FAILURE) {
                         db.taskDao().updateTaskState(id = entity.id, state = TaskState.FAILED)
                         return false
                     } else {
                         continue
                     }
                 }
+
                 TaskState.CANCELLED -> {
                     db.taskDao().updateTaskState(id = entity.id, state = TaskState.CANCELLED)
                     return false
                 }
+
                 else -> return false
             }
         }
@@ -288,7 +303,10 @@ internal class TaskCoordinator(
     /**
      * Calculates the retry backoff duration in milliseconds according to the task's policy.
      */
-    internal fun computeBackoffDelay(entity: TaskEntity, attempt: Int): Long {
-        return entity.backoffPolicy.calculateDelay(entity.backoffDelayMs, attempt)
+    private fun computeBackoffDelay(entity: TaskEntity, attempt: Int): Long {
+        return entity.backoffPolicy.calculateDelay(
+            initialDelayMs = entity.backoffDelayMs,
+            attempt = attempt
+        )
     }
 }

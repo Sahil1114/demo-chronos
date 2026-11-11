@@ -16,7 +16,7 @@ internal actual class Daemon actual constructor(
     private val clock: Clock
 ) {
     private lateinit var scheduler: IosBackgroundTaskScheduler
-    private val dueTimeLoop = DueTimeLoop(db, coordinator, clock)
+    private val dueTimeLoop = DueTimeLoop(db = db, coordinator = coordinator, clock = clock)
 
     constructor(
         coroutineScope: CoroutineScope,

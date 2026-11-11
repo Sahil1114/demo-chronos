@@ -17,7 +17,7 @@ internal actual class Daemon actual constructor(
     private val db: ChronosDatabase,
     private val clock: Clock
 ) {
-    private val dueTimeLoop = DueTimeLoop(db, coordinator, clock)
+    private val dueTimeLoop = DueTimeLoop(db = db, coordinator = coordinator, clock = clock)
 
     actual fun start() {
         coroutineScope.launch {

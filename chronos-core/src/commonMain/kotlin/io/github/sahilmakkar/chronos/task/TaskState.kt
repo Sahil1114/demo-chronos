@@ -67,10 +67,10 @@ public enum class TaskState {
     RETRYING,
 
     /**
-     * The task was explicitly cancelled via [io.github.sahilmakkar.chronos.Chronos.cancelTaskById],
+     * The task was explicitly canceled via [io.github.sahilmakkar.chronos.Chronos.cancelTaskById],
      * [io.github.sahilmakkar.chronos.Chronos.cancelTaskByTag], or cascading chain cancellation.
      *
-     * This is a permanent terminal state; cancelled tasks are never re-run or rescheduled.
+     * This is a permanent terminal state; canceled tasks are never re-run or rescheduled.
      */
-    CANCELLED
+    CANCELLED,
 }

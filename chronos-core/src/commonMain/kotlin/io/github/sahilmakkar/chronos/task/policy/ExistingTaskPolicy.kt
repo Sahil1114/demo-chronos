@@ -9,7 +9,7 @@ package io.github.sahilmakkar.chronos.task.policy
  * @see io.github.sahilmakkar.chronos.Chronos.enqueueTask
  * @see io.github.sahilmakkar.chronos.Chronos.enqueuePeriodicTask
  */
-public enum class UniqueTaskPolicy {
+public enum class ExistingTaskPolicy {
     /**
      * Preserves the existing active task and drops the newly submitted task request.
      *
@@ -34,5 +34,5 @@ public enum class UniqueTaskPolicy {
      *
      * Note: Not supported for periodic tasks.
      */
-    APPEND
+    APPEND,
 }

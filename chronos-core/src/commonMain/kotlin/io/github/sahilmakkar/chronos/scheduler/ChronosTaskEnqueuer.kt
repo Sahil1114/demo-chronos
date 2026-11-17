@@ -8,8 +8,9 @@ import io.github.sahilmakkar.chronos.storage.TaskEntity
 import io.github.sahilmakkar.chronos.storage.TaskTagEntity
 import io.github.sahilmakkar.chronos.storage.mapper.toEntity
 import io.github.sahilmakkar.chronos.task.TaskChain
+import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy
-import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
+import io.github.sahilmakkar.chronos.task.policy.ExistingTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
@@ -22,6 +23,9 @@ import kotlin.time.Clock
  *
  * Persists task requests, schedules platform wake-ups via [WakeScheduler], and notifies [TaskCoordinator]
  * to evaluate pending work immediately.
+ *
+ * A task name always refers to a single generation of tasks: when a new generation starts
+ * (KEEP with nothing active, or REPLACE), older rows give up the name.
  */
 internal class ChronosTaskEnqueuer(
     private val db: ChronosDatabase,
@@ -29,38 +33,48 @@ internal class ChronosTaskEnqueuer(
     private val coordinator: TaskCoordinator,
     private val clock: Clock = Clock.System,
     private val onEnqueued: ((TaskRequest) -> Unit)? = null,
-    private val wakeScheduler: WakeScheduler? = null
+    private val wakeScheduler: WakeScheduler? = null,
 ) : TaskEnqueuer {
-
     /**
-     * Enqueues a unique one-time task applying the specified collision [policy].
+     * Enqueues a named one-time task applying the specified [policy].
      *
-     * If an existing task shares [name]:
-     * - [UniqueTaskPolicy.KEEP]: Leaves the active task intact; drops [request].
-     * - [UniqueTaskPolicy.REPLACE]: Cancels the existing active task and downstream dependents, inserting [request].
-     * - [UniqueTaskPolicy.APPEND]: Attaches [request] as a sequential dependency behind the current leaf of the existing chain.
+     * "Active" means `ENQUEUED`, `RUNNING` or `RETRYING`.
+     * - [ExistingTaskPolicy.KEEP]: If a task with [name] is active, drops [request]. Finished tasks do not block it.
+     * - [ExistingTaskPolicy.REPLACE]: Cancels every active task with [name] (a running worker is not interrupted;
+     *   its result is ignored), then inserts [request].
+     * - [ExistingTaskPolicy.APPEND]: Attaches [request] behind the current leaf of the chain under [name].
+     *   Runs after a `SUCCEEDED` leaf; behind a `FAILED` or `CANCELLED` leaf it fails or is cancelled
+     *   (STOP_ON_FAILURE). If nothing holds [name], [request] is inserted as a new task.
      *
-     * @param name Unique task name identifier.
-     * @param policy Strategy for handling collisions with existing tasks sharing the same name.
+     * @param name Task name identifier.
+     * @param policy Strategy for handling an existing task under the same name.
      * @param request One-time task specification to enqueue.
      */
     override fun enqueueTask(
         name: String,
-        policy: UniqueTaskPolicy,
-        request: OneTimeTaskRequest
+        policy: ExistingTaskPolicy,
+        request: OneTimeTaskRequest,
     ) {
         coroutineScope.launch {
-            val existing = db.taskDao().getTaskByName(name)
-            if (existing != null) {
-                when (policy) {
-                    UniqueTaskPolicy.KEEP -> return@launch
-                    UniqueTaskPolicy.REPLACE -> cancelAndReplace(existingId = existing.id)
-                    UniqueTaskPolicy.APPEND -> {
-                        val leaf = findLeafTask(existing.id)
+            val dao = db.taskDao()
+            val active = dao.getActiveTasksByName(name = name, states = ACTIVE_STATES)
+
+            when (policy) {
+                ExistingTaskPolicy.KEEP -> {
+                    if (active.isNotEmpty()) return@launch // something is alive: drop the request
+                }
+
+                ExistingTaskPolicy.REPLACE -> {
+                    active.forEach { dao.cancelTaskIfActive(id = it.id) }
+                }
+
+                ExistingTaskPolicy.APPEND -> {
+                    val leaf = dao.getLeafByName(name = name)
+                    if (leaf != null) {
                         insertWithDependency(
                             request = request,
                             uniqueName = name,
-                            parentId = leaf.id
+                            parentId = leaf.id,
                         )
                         onEnqueued?.invoke(request)
                         coordinator.sweepChainRecovery()
@@ -68,9 +82,12 @@ internal class ChronosTaskEnqueuer(
                         coordinator.runPendingTasks()
                         return@launch
                     }
+                    // nothing under this name: fall through and start a new one
                 }
             }
-            insertUnique(request, name)
+
+            dao.detachName(name = name) // KEEP (nothing active) and REPLACE both start a new generation
+            insertUnique(request = request, name = name)
             onEnqueued?.invoke(request)
             wakeScheduler?.scheduleNextWake()
             coordinator.runPendingTasks()
@@ -78,31 +95,43 @@ internal class ChronosTaskEnqueuer(
     }
 
     /**
-     * Enqueues a unique periodic task applying [UniqueTaskPolicy.KEEP] or [UniqueTaskPolicy.REPLACE].
+     * Enqueues a named periodic task applying [ExistingTaskPolicy.KEEP] or [ExistingTaskPolicy.REPLACE].
      *
-     * @param name Unique task name identifier.
-     * @param policy Collision resolution strategy. Note: [UniqueTaskPolicy.APPEND] is rejected.
+     * A periodic task returns to `ENQUEUED` after each run, so it stays active until cancelled.
+     *
+     * @param name Task name identifier.
+     * @param policy Collision resolution strategy. Note: [ExistingTaskPolicy.APPEND] is rejected.
      * @param request Periodic task specification to enqueue.
-     * @throws IllegalArgumentException if [policy] is [UniqueTaskPolicy.APPEND].
+     * @throws IllegalArgumentException if [policy] is [ExistingTaskPolicy.APPEND].
      */
     override fun enqueuePeriodicTask(
         name: String,
-        policy: UniqueTaskPolicy,
-        request: PeriodicTaskRequest
+        policy: ExistingTaskPolicy,
+        request: PeriodicTaskRequest,
     ) {
-        require(value = policy != UniqueTaskPolicy.APPEND) {
-            "APPEND policy is not supported for unique periodic work."
+        require(value = policy != ExistingTaskPolicy.APPEND) {
+            "APPEND policy is not supported for periodic work."
         }
         coroutineScope.launch {
-            val existing = db.taskDao().getTaskByName(name)
-            if (existing != null) {
-                when (policy) {
-                    UniqueTaskPolicy.KEEP -> return@launch
-                    UniqueTaskPolicy.REPLACE -> cancelAndReplace(existingId = existing.id)
-                    UniqueTaskPolicy.APPEND -> return@launch
+            val dao = db.taskDao()
+            val active = dao.getActiveTasksByName(name = name, states = ACTIVE_STATES)
+
+            when (policy) {
+                ExistingTaskPolicy.KEEP -> {
+                    if (active.isNotEmpty()) return@launch // already scheduled: drop the request
+                }
+
+                ExistingTaskPolicy.REPLACE -> {
+                    active.forEach { dao.cancelTaskIfActive(id = it.id) }
+                }
+
+                ExistingTaskPolicy.APPEND -> {
+                    error("APPEND is rejected by require() above")
                 }
             }
-            insertUnique(request, name)
+
+            dao.detachName(name = name)
+            insertUnique(request = request, name = name)
             onEnqueued?.invoke(request)
             wakeScheduler?.scheduleNextWake()
             coordinator.runPendingTasks()
@@ -128,80 +157,70 @@ internal class ChronosTaskEnqueuer(
                 tasks.add(
                     req.toEntity(
                         scheduledAt = nowMs + req.initialDelay.inWholeMilliseconds,
-                    )
+                    ),
                 )
-                tags.addAll(req.tags.map { TaskTagEntity(req.id, it) })
+                tags.addAll(req.tags.map { TaskTagEntity(taskId = req.id, tag = it) })
                 if (i > 0) {
                     dependencies.add(
                         TaskDependencyEntity(
                             parentTaskId = chain.requests[i - 1].id,
                             childTaskId = req.id,
-                            chainFailurePolicy = chain.failurePolicies[i - 1]
-                        )
+                            chainFailurePolicy = chain.failurePolicies[i - 1],
+                        ),
                     )
                 }
             }
-            db.taskDao().insertChain(tasks, tags, dependencies)
+            db.taskDao().insertChain(tasks = tasks, tags = tags, dependencies = dependencies)
             chain.requests.forEach { onEnqueued?.invoke(it) }
             wakeScheduler?.scheduleNextWake()
             coordinator.runPendingTasks()
         }
     }
 
-    private suspend fun insertUnique(request: TaskRequest, name: String) {
+    private suspend fun insertUnique(
+        request: TaskRequest,
+        name: String,
+    ) {
         db.taskDao().insertTask(
-            request.toEntity(
-                scheduledAt = clock.now()
-                    .toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
-                uniqueName = name
-            )
+            task =
+                request.toEntity(
+                    scheduledAt =
+                        clock
+                            .now()
+                            .toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
+                    uniqueName = name,
+                ),
         )
-        db.taskDao().insertTags(request.tags.map { TaskTagEntity(request.id, it) })
+        db
+            .taskDao()
+            .insertTags(tags = request.tags.map { TaskTagEntity(taskId = request.id, tag = it) })
     }
 
     private suspend fun insertWithDependency(
         request: TaskRequest,
         uniqueName: String,
-        parentId: String
+        parentId: String,
     ) {
-        val task = request.toEntity(
-            scheduledAt = clock.now()
-                .toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
-            uniqueName = uniqueName
-        )
-        val tags = request.tags.map { TaskTagEntity(request.id, it) }
-        val dependency = TaskDependencyEntity(
-            parentTaskId = parentId,
-            childTaskId = request.id,
-            chainFailurePolicy = DependentTaskPolicy.STOP_ON_FAILURE
-        )
-        db.taskDao().insertChain(listOf(task), tags, listOf(dependency))
+        val task =
+            request.toEntity(
+                scheduledAt = clock.now().toEpochMilliseconds() + request.initialDelay.inWholeMilliseconds,
+                uniqueName = uniqueName,
+            )
+
+        val tags = request.tags.map { TaskTagEntity(taskId = request.id, tag = it) }
+
+        val dependency =
+            TaskDependencyEntity(
+                parentTaskId = parentId,
+                childTaskId = request.id,
+                chainFailurePolicy = DependentTaskPolicy.STOP_ON_FAILURE,
+            )
+
+        db.taskDao().insertChain(tasks = listOf(task), tags = tags, dependencies = listOf(dependency))
     }
 
-    private suspend fun findLeafTask(rootId: String): TaskEntity {
-        var current = db.taskDao().getTask(rootId) ?: return db.taskDao().getTask(rootId)!!
-        while (true) {
-            val children = db.taskDao().getDependenciesForParent(current.id)
-            if (children.isEmpty()) break
-            val child = db.taskDao().getTask(children.first().childTaskId) ?: break
-            current = child
-        }
-        return current
-    }
-
-    private suspend fun cancelAndReplace(existingId: String) {
-        val updated = db.taskDao().cancelTaskIfActive(existingId)
-        if (updated > 0) {
-            cancelDownstream(existingId)
-        }
-    }
-
-    private suspend fun cancelDownstream(parentId: String) {
-        db.taskDao().getDependenciesForParent(parentId).forEach { dep ->
-            val updated = db.taskDao().cancelTaskIfActive(dep.childTaskId)
-            if (updated > 0) {
-                cancelDownstream(parentId = dep.childTaskId)
-            }
-        }
+    private companion object {
+        // Must match what TaskDao.cancelTaskIfActive treats as active (everything except the terminal states).
+        val ACTIVE_STATES = listOf(TaskState.ENQUEUED, TaskState.RUNNING, TaskState.RETRYING)
     }
 }

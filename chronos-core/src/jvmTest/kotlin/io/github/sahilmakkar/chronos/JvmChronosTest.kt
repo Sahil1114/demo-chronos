@@ -5,7 +5,7 @@ import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.model.taskDataOf
-import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
+import io.github.sahilmakkar.chronos.task.policy.ExistingTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.worker.TaskWorker
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
@@ -24,23 +24,24 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 class JvmChronosTest {
-
     private lateinit var registry: WorkerRegistry
     private lateinit var chronos: Chronos
 
-    class SuccessWorker(data: TaskData) : TaskWorker(inputData = data) {
-        override suspend fun doWork(): TaskResult =
-            TaskResult.Success(outputData = taskDataOf("ok" to true))
+    class SuccessWorker(
+        data: TaskData,
+    ) : TaskWorker(inputData = data) {
+        override suspend fun doWork(): TaskResult = TaskResult.Success(outputData = taskDataOf("ok" to true))
     }
 
     @BeforeTest
     fun setUp() {
         cleanDbFiles()
-        registry = WorkerRegistry().apply {
-            register(className = "io.github.sahilmakkar.chronos.JvmChronosTest.SuccessWorker") {
-                SuccessWorker(data = it)
+        registry =
+            WorkerRegistry().apply {
+                register(className = "io.github.sahilmakkar.chronos.JvmChronosTest.SuccessWorker") {
+                    SuccessWorker(data = it)
+                }
             }
-        }
         chronos = Chronos.initialize(support = PlatformSupport(), registry = registry)
     }
 
@@ -57,10 +58,15 @@ class JvmChronosTest {
         File(home, ".chronos/chronos_work.db-shm").delete()
     }
 
-    private suspend fun awaitState(id: String, state: TaskState, timeoutMs: Long = 5000): TaskInfo {
-        val info = withTimeoutOrNull(timeoutMs.milliseconds) {
-            chronos.observeTask(id).first { it?.state == state }
-        }
+    private suspend fun awaitState(
+        id: String,
+        state: TaskState,
+        timeoutMs: Long = 5000,
+    ): TaskInfo {
+        val info =
+            withTimeoutOrNull(timeoutMs.milliseconds) {
+                chronos.observeTask(id).first { it?.state == state }
+            }
         if (info == null) {
             val current = chronos.observeTask(id).first()
             fail("Timed out waiting for task $id to reach state $state. Current state: ${current?.state}")
@@ -69,60 +75,66 @@ class JvmChronosTest {
     }
 
     @Test
-    fun testOneTimeTaskSuccess(): Unit = runBlocking {
-        val req = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
-        chronos.enqueueTask(name = "success_test", policy = UniqueTaskPolicy.REPLACE, request = req)
+    fun testOneTimeTaskSuccess(): Unit =
+        runBlocking {
+            val req = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
+            chronos.enqueueTask(name = "success_test", policy = ExistingTaskPolicy.REPLACE, request = req)
 
-        val info = awaitState(req.id, TaskState.SUCCEEDED)
-        assertNotNull(info)
-        assertEquals(true, info.outputData.getBoolean("ok", false))
-    }
-
-    @Test
-    fun testUniqueWorkPolicyKeep(): Unit = runBlocking {
-        val req1 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
-        val req2 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
-
-        chronos.enqueueTask(
-            name = "unique_job",
-            policy = UniqueTaskPolicy.KEEP,
-            request = req1
-        )
-        awaitState(id = req1.id, state = TaskState.SUCCEEDED)
-
-        chronos.enqueueTask(
-            name = "unique_job",
-            policy = UniqueTaskPolicy.KEEP,
-            request = req2
-        )
-
-        val info2 = chronos.observeTask(req2.id).first()
-        assertNull(actual = info2)
-    }
+            val info = awaitState(req.id, TaskState.SUCCEEDED)
+            assertNotNull(info)
+            assertEquals(true, info.outputData.getBoolean("ok", false))
+        }
 
     @Test
-    fun testWorkChainExecution(): Unit = runBlocking {
-        val req1 = OneTimeTaskRequest.Builder(SuccessWorker::class).build()
-        val req2 = OneTimeTaskRequest.Builder(SuccessWorker::class).build()
+    fun testUniqueWorkPolicyKeep(): Unit =
+        runBlocking {
+            val req1 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
+            val req2 = OneTimeTaskRequest.Builder(workerClass = SuccessWorker::class).build()
 
-        val chain = chronos.beginWith(req1).then(req2)
-        chronos.enqueue(chain)
+            chronos.enqueueTask(
+                name = "unique_job",
+                policy = ExistingTaskPolicy.KEEP,
+                request = req1,
+            )
+            awaitState(id = req1.id, state = TaskState.SUCCEEDED)
 
-        awaitState(req1.id, TaskState.SUCCEEDED)
-        awaitState(req2.id, TaskState.SUCCEEDED)
-    }
+            chronos.enqueueTask(
+                name = "unique_job",
+                policy = ExistingTaskPolicy.KEEP,
+                request = req2,
+            )
+
+            val info2 = chronos.observeTask(req2.id).first()
+            assertNull(actual = info2)
+        }
 
     @Test
-    fun testTagBasedCancellation(): Unit = runBlocking {
-        val req = OneTimeTaskRequest.Builder(SuccessWorker::class)
-            .setInitialDelay(10.minutes)
-            .addTag("smoke-tag")
-            .build()
+    fun testWorkChainExecution(): Unit =
+        runBlocking {
+            val req1 = OneTimeTaskRequest.Builder(SuccessWorker::class).build()
+            val req2 = OneTimeTaskRequest.Builder(SuccessWorker::class).build()
 
-        chronos.enqueueTask(name = "smoke_tag_test", policy = UniqueTaskPolicy.REPLACE, request = req)
-        awaitState(req.id, TaskState.ENQUEUED)
+            val chain = chronos.beginWith(req1).then(req2)
+            chronos.enqueue(chain)
 
-        chronos.cancelTaskByTag("smoke-tag")
-        awaitState(req.id, TaskState.CANCELLED)
-    }
+            awaitState(req1.id, TaskState.SUCCEEDED)
+            awaitState(req2.id, TaskState.SUCCEEDED)
+        }
+
+    @Test
+    fun testTagBasedCancellation(): Unit =
+        runBlocking {
+            val req =
+                OneTimeTaskRequest
+                    .Builder(SuccessWorker::class)
+                    .setInitialDelay(10.minutes)
+                    .addTag("smoke-tag")
+                    .build()
+
+            chronos.enqueueTask(name = "smoke_tag_test", policy = ExistingTaskPolicy.REPLACE, request = req)
+            awaitState(req.id, TaskState.ENQUEUED)
+
+            chronos.cancelTaskByTag("smoke-tag")
+            awaitState(req.id, TaskState.CANCELLED)
+        }
 }

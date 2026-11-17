@@ -5,17 +5,14 @@ import io.github.sahilmakkar.chronos.port.TaskCanceller
 import io.github.sahilmakkar.chronos.port.TaskEnqueuer
 import io.github.sahilmakkar.chronos.port.TaskStore
 import io.github.sahilmakkar.chronos.scheduler.WakeScheduler
-import io.github.sahilmakkar.chronos.storage.ChronosDatabase
 import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
-import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
+import io.github.sahilmakkar.chronos.task.policy.ExistingTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
-import io.github.sahilmakkar.chronos.task.request.TaskRequest
 import io.github.sahilmakkar.chronos.worker.WorkerRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
@@ -53,13 +50,13 @@ internal class ChronosEngine(
 
     override fun enqueueTask(
         name: String,
-        policy: UniqueTaskPolicy,
+        policy: ExistingTaskPolicy,
         request: OneTimeTaskRequest,
     ) = enqueuer.enqueueTask(name = name, policy = policy, request = request)
 
     override fun enqueuePeriodicTask(
         name: String,
-        policy: UniqueTaskPolicy,
+        policy: ExistingTaskPolicy,
         request: PeriodicTaskRequest,
     ) = enqueuer.enqueuePeriodicTask(name = name, policy = policy, request = request)
 

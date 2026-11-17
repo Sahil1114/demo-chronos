@@ -2,7 +2,7 @@ package io.github.sahilmakkar.chronos
 
 import io.github.sahilmakkar.chronos.task.TaskChain
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
-import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
+import io.github.sahilmakkar.chronos.task.policy.ExistingTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.Flow
  *   ([io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy.STOP_ON_FAILURE] vs
  *   [io.github.sahilmakkar.chronos.task.policy.DependentTaskPolicy.CONTINUE_ON_FAILURE]).
  * - **Unique Tasks:** Prevent duplicate concurrent or pending executions via
- *   [io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy] (`KEEP`, `REPLACE`, or `APPEND`).
+ *   [io.github.sahilmakkar.chronos.task.policy.ExistingTaskPolicy] (`KEEP`, `REPLACE`, or `APPEND`).
  * - **Real-Time Observation:** Observe reactive [Flow] streams of task lifecycle states, progress payloads,
  *   and terminal outputs.
  * - **Platform-Native Background Wake-Up:** Integrates with Android WorkManager via a wake-up worker
@@ -58,38 +58,45 @@ import kotlinx.coroutines.flow.Flow
  * @see io.github.sahilmakkar.chronos.worker.TaskWorker
  */
 public interface Chronos : AutoCloseable {
-
     /**
      * Enqueues a unique one-time task identified by a distinct string name, applying the given
-     * [UniqueTaskPolicy] to resolve conflicts if a task with the same name already exists in an active state.
+     * [ExistingTaskPolicy] to resolve conflicts if a task with the same name already exists in an active state.
      *
      * Conflict resolution policies:
-     * - [UniqueTaskPolicy.KEEP]: If an active task with [name] already exists, the new request is ignored.
-     * - [UniqueTaskPolicy.REPLACE]: Cancels and clears the existing active task, replacing it with [request].
-     * - [UniqueTaskPolicy.APPEND]: Attaches the new task to execute sequentially after the existing active task's
+     * - [ExistingTaskPolicy.KEEP]: If an active task with [name] already exists, the new request is ignored.
+     * - [ExistingTaskPolicy.REPLACE]: Cancels and clears the existing active task, replacing it with [request].
+     * - [ExistingTaskPolicy.APPEND]: Attaches the new task to execute sequentially after the existing active task's
      *   completion, extending the execution chain.
      *
      * @param name Unique task identifier name used to detect conflicts across enqueues.
      * @param policy Policy defining how to handle existing active tasks with the same unique name.
      * @param request The one-time task request to enqueue.
-     * @see UniqueTaskPolicy
+     * @see ExistingTaskPolicy
      */
-    public fun enqueueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest)
+    public fun enqueueTask(
+        name: String,
+        policy: ExistingTaskPolicy,
+        request: OneTimeTaskRequest,
+    )
 
     /**
      * Enqueues a unique periodic task identified by a distinct string name, applying the given
-     * [UniqueTaskPolicy] to resolve conflicts if a periodic task with the same name already exists.
+     * [ExistingTaskPolicy] to resolve conflicts if a periodic task with the same name already exists.
      *
-     * Note: [UniqueTaskPolicy.APPEND] is not supported for periodic tasks and will throw an
+     * Note: [ExistingTaskPolicy.APPEND] is not supported for periodic tasks and will throw an
      * [IllegalArgumentException] if supplied.
      *
      * @param name Unique periodic task identifier name used to detect conflicts across enqueues.
-     * @param policy Conflict resolution policy; must be either [UniqueTaskPolicy.KEEP] or [UniqueTaskPolicy.REPLACE].
+     * @param policy Conflict resolution policy; must be either [ExistingTaskPolicy.KEEP] or [ExistingTaskPolicy.REPLACE].
      * @param request The periodic task request configuring the recurrence interval and execution criteria.
-     * @throws IllegalArgumentException If [policy] is set to [UniqueTaskPolicy.APPEND].
-     * @see UniqueTaskPolicy
+     * @throws IllegalArgumentException If [policy] is set to [ExistingTaskPolicy.APPEND].
+     * @see ExistingTaskPolicy
      */
-    public fun enqueuePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest)
+    public fun enqueuePeriodicTask(
+        name: String,
+        policy: ExistingTaskPolicy,
+        request: PeriodicTaskRequest,
+    )
 
     /**
      * Enqueues a sequential chain of dependent tasks.
@@ -200,7 +207,10 @@ public interface Chronos : AutoCloseable {
  * @param registry Worker registry containing registered worker factories.
  * @return The newly initialized [Chronos] singleton instance.
  */
-public expect fun Chronos.Companion.initialize(support: PlatformSupport, registry: WorkerRegistry): Chronos
+public expect fun Chronos.Companion.initialize(
+    support: PlatformSupport,
+    registry: WorkerRegistry,
+): Chronos
 
 /**
  * Returns the currently initialized process-wide Chronos singleton instance.

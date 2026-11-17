@@ -34,15 +34,21 @@ public enum class BackoffPolicy {
      * - Attempt 3: 40s
      * - Attempt 4: 80s
      */
-    EXPONENTIAL;
+    EXPONENTIAL,
 
-    internal fun calculateDelay(initialDelayMs: Long, attempt: Int): Long {
+    ;
+
+    internal fun calculateDelay(
+        initialDelayMs: Long,
+        attempt: Int,
+    ): Long {
         if (attempt <= 0 || initialDelayMs <= 0) return 0L
         return when (this) {
             LINEAR -> {
                 val mult = attempt.toLong()
                 if (mult > Long.MAX_VALUE / initialDelayMs) Long.MAX_VALUE else initialDelayMs * mult
             }
+
             EXPONENTIAL -> {
                 val shift = attempt - 1
                 if (shift >= 62) {

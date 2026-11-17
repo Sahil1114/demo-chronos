@@ -7,7 +7,7 @@ import io.github.sahilmakkar.chronos.task.TaskState
 import io.github.sahilmakkar.chronos.task.model.TaskData
 import io.github.sahilmakkar.chronos.task.model.TaskInfo
 import io.github.sahilmakkar.chronos.task.model.taskDataOf
-import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
+import io.github.sahilmakkar.chronos.task.policy.ExistingTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import io.github.sahilmakkar.chronos.task.request.PeriodicTaskRequest
 import io.github.sahilmakkar.chronos.task.request.TaskRequest
@@ -65,7 +65,6 @@ import kotlinx.coroutines.flow.map
 public class TestChronos(
     public override val registry: WorkerRegistry = WorkerRegistry(),
 ) : Chronos {
-
     /**
      * In-memory buffer of all currently pending, unexecuted [TaskRequest] instances.
      *
@@ -91,7 +90,11 @@ public class TestChronos(
      * @param policy Collision resolution policy.
      * @param request The one-time task request to enqueue.
      */
-    public override fun enqueueTask(name: String, policy: UniqueTaskPolicy, request: OneTimeTaskRequest) {
+    public override fun enqueueTask(
+        name: String,
+        policy: ExistingTaskPolicy,
+        request: OneTimeTaskRequest,
+    ) {
         enqueueInternal(request = request)
     }
 
@@ -104,7 +107,11 @@ public class TestChronos(
      * @param policy Collision resolution policy.
      * @param request The periodic task request to enqueue.
      */
-    public override fun enqueuePeriodicTask(name: String, policy: UniqueTaskPolicy, request: PeriodicTaskRequest) {
+    public override fun enqueuePeriodicTask(
+        name: String,
+        policy: ExistingTaskPolicy,
+        request: PeriodicTaskRequest,
+    ) {
         enqueueInternal(request = request)
     }
 
@@ -161,9 +168,7 @@ public class TestChronos(
      * @param id The canonical UUID string of the task to observe.
      * @return A cold [Flow] emitting the task snapshot or `null`.
      */
-    public override fun observeTask(id: String): Flow<TaskInfo?> {
-        return taskInfos.map { it[id] }
-    }
+    public override fun observeTask(id: String): Flow<TaskInfo?> = taskInfos.map { it[id] }
 
     /**
      * Returns a reactive [Flow] streaming a list of state updates for all tasks bearing [tag].
@@ -173,12 +178,11 @@ public class TestChronos(
      * @param tag Tag identifier for querying tasks.
      * @return A cold [Flow] emitting lists of matching [TaskInfo] snapshots.
      */
-    public override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> {
-        return taskInfos.map { map ->
+    public override fun observeTasksByTag(tag: String): Flow<List<TaskInfo>> =
+        taskInfos.map { map ->
             val matchingIds = taskTags.filter { (_, tags) -> tag in tags }.keys
             matchingIds.mapNotNull { map[it] }
         }
-    }
 
     /**
      * Synchronously executes all currently queued tasks in [enqueuedRequests] on the caller coroutine.
@@ -200,17 +204,25 @@ public class TestChronos(
                 val worker = registry.createWorker(className = req.workerClassName, inputData = req.taskData)
                 val res = worker.doWork()
                 when (res) {
-                    is TaskResult.Success -> updateTaskInfo(
-                        id = req.id,
-                        state = TaskState.SUCCEEDED,
-                        output = res.outputData
-                    )
-                    is TaskResult.Failure -> updateTaskInfo(
-                        id = req.id,
-                        state = TaskState.FAILED,
-                        output = res.outputData
-                    )
-                    TaskResult.Retry -> updateTaskInfo(id = req.id, state = TaskState.RETRYING)
+                    is TaskResult.Success -> {
+                        updateTaskInfo(
+                            id = req.id,
+                            state = TaskState.SUCCEEDED,
+                            output = res.outputData,
+                        )
+                    }
+
+                    is TaskResult.Failure -> {
+                        updateTaskInfo(
+                            id = req.id,
+                            state = TaskState.FAILED,
+                            output = res.outputData,
+                        )
+                    }
+
+                    TaskResult.Retry -> {
+                        updateTaskInfo(id = req.id, state = TaskState.RETRYING)
+                    }
                 }
             } catch (e: Exception) {
                 updateTaskInfo(id = req.id, state = TaskState.FAILED)
@@ -231,16 +243,21 @@ public class TestChronos(
     /**
      * Helper to update the in-memory [TaskInfo] snapshot for [id] and emit it through [taskInfos].
      */
-    private fun updateTaskInfo(id: String, state: TaskState, output: TaskData = taskDataOf()) {
+    private fun updateTaskInfo(
+        id: String,
+        state: TaskState,
+        output: TaskData = taskDataOf(),
+    ) {
         val current = taskInfos.value[id]
         val attempt = (current?.runAttemptCount ?: 0) + (if (state == TaskState.RUNNING) 1 else 0)
-        val newInfo = TaskInfo(
-            id = id,
-            state = state,
-            outputData = output,
-            progress = current?.progress ?: taskDataOf(),
-            runAttemptCount = attempt
-        )
+        val newInfo =
+            TaskInfo(
+                id = id,
+                state = state,
+                outputData = output,
+                progress = current?.progress ?: taskDataOf(),
+                runAttemptCount = attempt,
+            )
         taskInfos.value += (id to newInfo)
     }
 }

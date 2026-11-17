@@ -17,43 +17,56 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class ChronosTest {
-
     @Test
     fun testWorkDataSerialization() {
-        val original = taskDataOf(
-            "stringKey" to "hello world",
-            "intKey" to 42,
-            "longKey" to 1234567890L,
-            "doubleKey" to 3.14159,
-            "boolKey" to true
-        )
+        val original =
+            taskDataOf(
+                "stringKey" to "hello world",
+                "intKey" to 42,
+                "longKey" to 1234567890L,
+                "doubleKey" to 3.14159,
+                "boolKey" to true,
+            )
 
         val json = original.toJson()
         val deserialized = TaskData.fromJson(json)
 
         assertEquals(expected = "hello world", actual = deserialized.getString(key = "stringKey"))
         assertEquals(expected = 42, actual = deserialized.getInt(key = "intKey", defaultValue = 0))
-        assertEquals(expected = 1234567890L, actual = deserialized.getLong(
-            key = "longKey",
-            defaultValue = 0L
-        ))
-        assertEquals(expected = 3.14159, actual = deserialized.getDouble(
-            key = "doubleKey",
-            defaultValue = 0.0
-        ))
-        assertEquals(expected = true, actual = deserialized.getBoolean(
-            key = "boolKey",
-            defaultValue = false
-        ))
+        assertEquals(
+            expected = 1234567890L,
+            actual =
+                deserialized.getLong(
+                    key = "longKey",
+                    defaultValue = 0L,
+                ),
+        )
+        assertEquals(
+            expected = 3.14159,
+            actual =
+                deserialized.getDouble(
+                    key = "doubleKey",
+                    defaultValue = 0.0,
+                ),
+        )
+        assertEquals(
+            expected = true,
+            actual =
+                deserialized.getBoolean(
+                    key = "boolKey",
+                    defaultValue = false,
+                ),
+        )
     }
 
     @Test
     fun testWorkDataSpecialCharacters() {
-        val original = taskDataOf(
-            "escaped\"quote" to "value\"with\"quotes",
-            "newlines" to "line1\nline2\r\nline3",
-            "slashes" to "C:\\path\\to\\file"
-        )
+        val original =
+            taskDataOf(
+                "escaped\"quote" to "value\"with\"quotes",
+                "newlines" to "line1\nline2\r\nline3",
+                "slashes" to "C:\\path\\to\\file",
+            )
 
         val json = original.toJson()
         val deserialized = TaskData.fromJson(json)
@@ -63,7 +76,9 @@ class ChronosTest {
         assertEquals("C:\\path\\to\\file", deserialized.getString("slashes"))
     }
 
-    class TestWorker(inputData: TaskData) : TaskWorker(inputData) {
+    class TestWorker(
+        inputData: TaskData,
+    ) : TaskWorker(inputData) {
         override suspend fun doWork(): TaskResult {
             val num = inputData.getInt("num", 0)
             return if (num > 0) {
@@ -75,42 +90,58 @@ class ChronosTest {
     }
 
     @Test
-    fun testSynchronousExecution() = runTest {
-        val registry = WorkerRegistry().apply {
-            register("io.github.sahilmakkar.chronos.ChronosTest.TestWorker") { TestWorker(it) }
+    fun testSynchronousExecution() =
+        runTest {
+            val registry =
+                WorkerRegistry().apply {
+                    register("io.github.sahilmakkar.chronos.ChronosTest.TestWorker") { TestWorker(it) }
+                }
+            val scheduler = TestChronos(registry)
+
+            val req =
+                OneTimeTaskRequest
+                    .Builder(TestWorker::class)
+                    .setInputData(taskDataOf("num" to 21))
+                    .build()
+
+            scheduler.enqueueTask(
+                name = "sync_exec",
+                policy = io.github.sahilmakkar.chronos.task.policy.ExistingTaskPolicy.REPLACE,
+                request = req,
+            )
+            scheduler.runPendingTasksNow()
+
+            val info = scheduler.observeTask(req.id).first()
+            assertNotNull(actual = info)
+            assertEquals(expected = TaskState.SUCCEEDED, actual = info.state)
+            assertEquals(expected = 42, actual = info.outputData.getInt("result", 0))
         }
-        val scheduler = TestChronos(registry)
-
-        val req = OneTimeTaskRequest.Builder(TestWorker::class)
-            .setInputData(taskDataOf("num" to 21))
-            .build()
-
-        scheduler.enqueueTask(name = "sync_exec", policy = io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy.REPLACE, request = req)
-        scheduler.runPendingTasksNow()
-
-        val info = scheduler.observeTask(req.id).first()
-        assertNotNull(actual = info)
-        assertEquals(expected = TaskState.SUCCEEDED, actual = info.state)
-        assertEquals(expected = 42, actual = info.outputData.getInt("result", 0))
-    }
 
     @Test
-    fun testFailedWorkerSynchronous() = runTest {
-        val registry = WorkerRegistry().apply {
-            register(className = "io.github.sahilmakkar.chronos.ChronosTest.TestWorker") { TestWorker(it) }
+    fun testFailedWorkerSynchronous() =
+        runTest {
+            val registry =
+                WorkerRegistry().apply {
+                    register(className = "io.github.sahilmakkar.chronos.ChronosTest.TestWorker") { TestWorker(it) }
+                }
+            val scheduler = TestChronos(registry)
+
+            val req =
+                OneTimeTaskRequest
+                    .Builder(TestWorker::class)
+                    .setInputData(taskDataOf("num" to 0))
+                    .build()
+
+            scheduler.enqueueTask(
+                name = "failed_exec",
+                policy = io.github.sahilmakkar.chronos.task.policy.ExistingTaskPolicy.REPLACE,
+                request = req,
+            )
+            scheduler.runPendingTasksNow()
+
+            val info = scheduler.observeTask(id = req.id).first()
+            assertNotNull(actual = info)
+            assertEquals(expected = TaskState.FAILED, actual = info.state)
+            assertEquals(expected = "invalid number", actual = info.outputData.getString("error"))
         }
-        val scheduler = TestChronos(registry)
-
-        val req = OneTimeTaskRequest.Builder(TestWorker::class)
-            .setInputData(taskDataOf("num" to 0))
-            .build()
-
-        scheduler.enqueueTask(name = "failed_exec", policy = io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy.REPLACE, request = req)
-        scheduler.runPendingTasksNow()
-
-        val info = scheduler.observeTask(id = req.id).first()
-        assertNotNull(actual = info)
-        assertEquals(expected = TaskState.FAILED, actual = info.state)
-        assertEquals(expected = "invalid number", actual = info.outputData.getString("error"))
-    }
 }

@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,44 +15,47 @@ import androidx.compose.ui.unit.sp
 import io.github.sahilmakkar.chronos.Chronos
 import io.github.sahilmakkar.chronos.beginWith
 import io.github.sahilmakkar.chronos.task.policy.BackoffPolicy
-import io.github.sahilmakkar.chronos.task.policy.UniqueTaskPolicy
+import io.github.sahilmakkar.chronos.task.policy.ExistingTaskPolicy
 import io.github.sahilmakkar.chronos.task.request.OneTimeTaskRequest
 import kotlin.time.Duration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App(chronos: Chronos) {
-    val tasks by chronos.observeTasksByTag(tag = "sample-task")
+    val tasks by chronos
+        .observeTasksByTag(tag = "sample-task")
         .collectAsState(initial = emptyList())
 
     MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Color(0xFF81C784),
-            secondary = Color(0xFF64B5F6),
-            background = Color(0xFF121212),
-            surface = Color(0xFF1E1E1E),
-            onBackground = Color(0xFFE0E0E0),
-            onSurface = Color(0xFFE0E0E0)
-        )
+        colorScheme =
+            darkColorScheme(
+                primary = Color(0xFF81C784),
+                secondary = Color(0xFF64B5F6),
+                background = Color(0xFF121212),
+                surface = Color(0xFF1E1E1E),
+                onBackground = Color(0xFFE0E0E0),
+                onSurface = Color(0xFFE0E0E0),
+            ),
     ) {
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = { Text("Chronos KMP Scheduler", fontWeight = FontWeight.Bold) },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
                 )
-            }
+            },
         ) { padding ->
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(16.dp)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(16.dp),
             ) {
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Actions section
@@ -61,51 +63,53 @@ fun App(chronos: Chronos) {
                     text = "Enqueue Tasks",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Button(
                         onClick = {
                             val req =
-                                OneTimeTaskRequest.Builder(workerClass = SampleSuccessWorker::class)
+                                OneTimeTaskRequest
+                                    .Builder(workerClass = SampleSuccessWorker::class)
                                     .addTag(tag = "sample-task")
                                     .build()
-                            chronos.enqueueTask(name = "sample-success-${req.id}", policy = UniqueTaskPolicy.REPLACE, request = req)
+                            chronos.enqueueTask(name = "sample-success-${req.id}", policy = ExistingTaskPolicy.REPLACE, request = req)
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text("Success")
                     }
                     Button(
                         onClick = {
                             val req =
-                                OneTimeTaskRequest.Builder(workerClass = SampleFailureWorker::class)
+                                OneTimeTaskRequest
+                                    .Builder(workerClass = SampleFailureWorker::class)
                                     .addTag(tag = "sample-task")
                                     .build()
-                            chronos.enqueueTask(name = "sample-failure-${req.id}", policy = UniqueTaskPolicy.REPLACE, request = req)
+                            chronos.enqueueTask(name = "sample-failure-${req.id}", policy = ExistingTaskPolicy.REPLACE, request = req)
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text("Failure")
                     }
                     Button(
                         onClick = {
                             val req =
-                                OneTimeTaskRequest.Builder(workerClass = SampleRetryWorker::class)
+                                OneTimeTaskRequest
+                                    .Builder(workerClass = SampleRetryWorker::class)
                                     .setBackoffCriteria(
                                         policy = BackoffPolicy.LINEAR,
                                         initialDelay = Duration.parse("3s"),
-                                        maxRetries = 3
-                                    )
-                                    .addTag(tag = "sample-task")
+                                        maxRetries = 3,
+                                    ).addTag(tag = "sample-task")
                                     .build()
-                            chronos.enqueueTask(name = "sample-retry-${req.id}", policy = UniqueTaskPolicy.REPLACE, request = req)
+                            chronos.enqueueTask(name = "sample-retry-${req.id}", policy = ExistingTaskPolicy.REPLACE, request = req)
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text("Retry")
                     }
@@ -115,26 +119,28 @@ fun App(chronos: Chronos) {
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Button(
                         onClick = {
                             val req1 =
-                                OneTimeTaskRequest.Builder(workerClass = SampleSuccessWorker::class)
+                                OneTimeTaskRequest
+                                    .Builder(workerClass = SampleSuccessWorker::class)
                                     .addTag(tag = "sample-task")
                                     .build()
                             val req2 =
-                                OneTimeTaskRequest.Builder(workerClass = SampleSuccessWorker::class)
+                                OneTimeTaskRequest
+                                    .Builder(workerClass = SampleSuccessWorker::class)
                                     .addTag(tag = "sample-task")
                                     .build()
                             // TaskChain has no enqueue() of its own -- the chain goes through
                             // chronos.enqueue(chain), same as everywhere else it's used.
                             chronos.enqueue(
-                                chain = chronos.beginWith(request = req1).then(request = req2)
+                                chain = chronos.beginWith(request = req1).then(request = req2),
                             )
                         },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     ) {
                         Text("Success Chain")
                     }
@@ -143,7 +149,7 @@ fun App(chronos: Chronos) {
                             chronos.cancelAllTasks()
                         },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE57373))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE57373)),
                     ) {
                         Text("Cancel All")
                     }
@@ -156,21 +162,21 @@ fun App(chronos: Chronos) {
                     text = "Scheduled Tasks (${tasks.size})",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 if (tasks.isEmpty()) {
                     Box(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(text = "No tasks enqueued", color = Color.Gray)
                     }
                 } else {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(tasks) { info ->
                             TaskCard(info = info)

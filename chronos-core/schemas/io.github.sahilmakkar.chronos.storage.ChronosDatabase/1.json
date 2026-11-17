@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "fec2564448a67e39042a5b8d0d82b3bf",
+    "identityHash": "3bab791226c60e254b5562c8355892c6",
     "entities": [
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workerClassName` TEXT NOT NULL, `state` TEXT NOT NULL, `uniqueTaskName` TEXT, `maxRetries` INTEGER NOT NULL, `runAttemptCount` INTEGER NOT NULL, `timeoutMs` INTEGER, `scheduledAt` INTEGER NOT NULL, `chainId` TEXT, `chainOrder` INTEGER NOT NULL, `inputDataJson` TEXT NOT NULL, `outputDataJson` TEXT NOT NULL, `progressDataJson` TEXT NOT NULL, `backoffPolicy` TEXT NOT NULL, `backoffDelayMs` INTEGER NOT NULL, `networkType` TEXT NOT NULL, `requiresCharging` INTEGER NOT NULL, `requiresBatteryNotLow` INTEGER NOT NULL, `requiresStorageNotLow` INTEGER NOT NULL, `requiresDeviceIdle` INTEGER NOT NULL, `windowStartHour` INTEGER, `windowEndHour` INTEGER, `windowTimeZone` TEXT, `repeatIntervalMs` INTEGER, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workerClassName` TEXT NOT NULL, `state` TEXT NOT NULL, `uniqueTaskName` TEXT, `maxRetries` INTEGER NOT NULL, `runAttemptCount` INTEGER NOT NULL, `timeoutMs` INTEGER, `scheduledAt` INTEGER NOT NULL, `inputDataJson` TEXT NOT NULL, `outputDataJson` TEXT NOT NULL, `progressDataJson` TEXT NOT NULL, `backoffPolicy` TEXT NOT NULL, `backoffDelayMs` INTEGER NOT NULL, `networkType` TEXT NOT NULL, `requiresCharging` INTEGER NOT NULL, `requiresBatteryNotLow` INTEGER NOT NULL, `requiresStorageNotLow` INTEGER NOT NULL, `requiresDeviceIdle` INTEGER NOT NULL, `windowStartHour` INTEGER, `windowEndHour` INTEGER, `windowTimeZone` TEXT, `repeatIntervalMs` INTEGER, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -51,17 +51,6 @@
           {
             "fieldPath": "scheduledAt",
             "columnName": "scheduledAt",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "chainId",
-            "columnName": "chainId",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "chainOrder",
-            "columnName": "chainOrder",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -300,7 +289,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fec2564448a67e39042a5b8d0d82b3bf')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3bab791226c60e254b5562c8355892c6')"
     ]
   }
 }

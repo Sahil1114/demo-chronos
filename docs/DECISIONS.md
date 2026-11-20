@@ -21,7 +21,7 @@ Previously, `AndroidTaskExecutor` delegated individual tasks to WorkManager with
 ### Decision
 We adopt **Option B**: WorkManager is used exclusively as an OS-level wake-up trigger (`ChronosWakeWorker`).
 - Tasks are executed uniformly across all platforms using `InProcessTaskExecutor`.
-- `ChronosWakeScheduler` schedules a unique WorkManager task (`"chronos_wake"`, `ExistingWorkPolicy.REPLACE`) with initial delay matching the next due task.
+- `AndroidWakeScheduler` schedules a unique WorkManager task (`"chronos_wake"`, `ExistingWorkPolicy.REPLACE`) with initial delay matching the next due task.
 - If the next due task specifies network or battery constraints, those constraints are mirrored in the WorkManager wake request.
 - `ChronosWakeWorker` wakes up the process and invokes `Chronos.instance.runPendingTasksNow()`, then reschedules the next wake-up.
 - `AndroidTaskExecutor`, `AndroidDelegatingWorker`, and `WorkManagerRequestMapper` are removed.

@@ -27,7 +27,7 @@ import kotlinx.coroutines.SupervisorJob
  */
 public actual fun Chronos.Companion.initialize(
     support: PlatformSupport,
-    registry: WorkerRegistry
+    registry: WorkerRegistry,
 ): Chronos {
     val impl = buildJvmChronos(support = support, registry = registry)
     ChronosRegistry.set(instance = impl)
@@ -44,20 +44,27 @@ public actual fun Chronos.Companion.initialize(
  * @param registry Registered worker mapping.
  * @return A fully assembled [ChronosEngine].
  */
-internal fun buildJvmChronos(support: PlatformSupport, registry: WorkerRegistry): ChronosEngine {
+internal fun buildJvmChronos(
+    support: PlatformSupport,
+    registry: WorkerRegistry,
+): ChronosEngine {
     val db = createRoomDatabase(support = support)
     val coroutineScope = CoroutineScope(context = SupervisorJob() + Dispatchers.Default)
     val networkChecker = JvmNetworkChecker()
 
     val taskExecutor = InProcessTaskExecutor(db = db, registry = registry)
     val constraintVerifier = JvmConstraintVerifier(networkChecker = networkChecker)
-    val coordinator = TaskCoordinator(
-        db = db,
-        constraintProvider = constraintVerifier,
-        taskExecutor = taskExecutor
-    )
+    val coordinator =
+        TaskCoordinator(
+            db = db,
+            constraintProvider = constraintVerifier,
+            taskExecutor = taskExecutor,
+        )
+
     val daemon = Daemon(coroutineScope = coroutineScope, coordinator = coordinator, db = db)
-    val enqueuer = ChronosTaskEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
+    val enqueuer =
+        ChronosTaskEnqueuer(db = db, coroutineScope = coroutineScope, coordinator = coordinator)
+
     val canceller = ChronosTaskCanceller(db = db, coroutineScope = coroutineScope)
     val taskStore = RoomTaskStore(dao = db.taskDao())
 
@@ -69,6 +76,6 @@ internal fun buildJvmChronos(support: PlatformSupport, registry: WorkerRegistry)
         enqueuer = enqueuer,
         canceller = canceller,
         taskStore = taskStore,
-        onClose = { db.close() }
+        onClose = { db.close() },
     )
 }
